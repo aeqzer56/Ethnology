@@ -3,1879 +3,844 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Симулятор жизненного пути</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>KiberMarket — доска объявлений класса</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
 <style>
 :root {
-  --bg: #09090b;
-  --s1: #111115;
-  --s2: #18181f;
-  --s3: #1f1f2a;
-  --border: #27272f;
-  --border2: #32323e;
-  --amber: #d97706;
-  --amber2: #f59e0b;
-  --amber3: #fbbf24;
-  --green: #059669;
-  --green2: #10b981;
-  --red: #dc2626;
-  --red2: #ef4444;
-  --blue: #2563eb;
-  --blue2: #3b82f6;
-  --text: #f1f0ee;
-  --text2: #a8a29e;
-  --text3: #57534e;
+  --bg:        #faf9f7;
+  --surface:   #ffffff;
+  --surface2:  #f4f2ef;
+  --border:    #e8e4de;
+  --border2:   #d4cfc7;
+  --text:      #1a1814;
+  --text2:     #6b6560;
+  --text3:     #a09890;
+  --accent:    #c8853a;
+  --accent-lt: #f5ebe0;
+  --accent-dk: #9c631f;
+  --green:     #3a7d5c;
+  --blue:      #3a6b9c;
+  --radius:    16px;
+  --radius-sm: 10px;
+  --shadow:    0 4px 20px rgba(0,0,0,.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.12);
 }
 
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Geologica', sans-serif;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
   min-height: 100vh;
-  overflow-x: hidden;
-  position: relative;
 }
 
-/* NOISE TEXTURE */
-body::before {
-  content:'';
-  position:fixed;inset:0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-  pointer-events:none;z-index:0;opacity:.6;
-}
-
-/* RADIAL GLOW */
-body::after {
-  content:'';
-  position:fixed;
-  width:900px;height:900px;
-  border-radius:50%;
-  background: radial-gradient(circle, rgba(217,119,6,0.04) 0%, transparent 70%);
-  top:-200px;right:-200px;
-  pointer-events:none;z-index:0;
-}
-
-.app {
-  position:relative;z-index:1;
-  max-width:820px;
-  margin:0 auto;
-  padding:48px 24px 100px;
-}
-
-/* ── HEADER ── */
-.site-header {
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:56px;
-  padding-bottom:20px;
-  border-bottom:1px solid var(--border);
+/* HEADER */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250,249,247,.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px;
 }
 .logo {
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;font-weight:400;
-  letter-spacing:3px;text-transform:uppercase;
-  color:var(--text3);
+  font-family: 'Playfair Display', serif;
+  font-size: 20px; font-weight: 900; letter-spacing: -.01em;
 }
-.logo span { color:var(--amber2); }
-.age-badge {
-  font-family:'JetBrains Mono',monospace;
-  font-size:12px;color:var(--amber2);
-  background:rgba(217,119,6,0.08);
-  border:1px solid rgba(217,119,6,0.2);
-  border-radius:4px;padding:4px 12px;
-  display:none;
+.logo span { color: var(--accent); }
+.header-badge {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: 12px; color: var(--text2); font-weight: 500;
 }
-.age-badge.visible{display:block;}
+#listingCount { color: var(--accent); font-weight: 700; }
 
-/* ── PROGRESS TIMELINE ── */
-.timeline {
-  display:flex;align-items:center;gap:0;
-  margin-bottom:44px;
-  overflow:hidden;
+/* HERO */
+.hero {
+  padding: 72px 32px 56px;
+  max-width: 700px; margin: 0 auto; text-align: center;
 }
-.tl-seg {
-  flex:1;height:2px;
-  background:var(--border);
-  transition:background .4s;
-  position:relative;
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-lt); color: var(--accent-dk);
+  border-radius: 100px; padding: 5px 14px;
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  margin-bottom: 24px;
 }
-.tl-seg.done{background:var(--amber);}
-.tl-seg.active{background:linear-gradient(90deg,var(--amber),var(--amber3));}
-.tl-seg::after {
-  content:attr(data-age);
-  position:absolute;top:8px;left:50%;
-  transform:translateX(-50%);
-  font-family:'JetBrains Mono',monospace;
-  font-size:9px;color:var(--text3);
-  white-space:nowrap;
-  transition:color .3s;
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 5vw, 58px); font-weight: 900; line-height: 1.1;
+  margin-bottom: 16px;
 }
-.tl-seg.active::after,.tl-seg.done::after{color:var(--amber2);}
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero p {
+  color: var(--text2); font-size: 15px; max-width: 440px;
+  margin: 0 auto 36px; line-height: 1.75;
+}
+.btn-post {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--text); color: var(--bg);
+  font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 14px 28px; border-radius: 100px; border: none; cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+.btn-post:hover { background: var(--accent); transform: translateY(-2px); }
 
-/* ── SCREEN ── */
-.screen{display:none;animation:rise .35s cubic-bezier(.4,0,.2,1) both;}
-.screen.active{display:block;}
-@keyframes rise{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+/* FILTERS */
+.filters-wrap { padding: 0 32px 32px; max-width: 1120px; margin: 0 auto; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text2); border-radius: 100px; padding: 8px 18px;
+  font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+.filter-btn.active { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
 
-/* ── CARD ── */
+/* GRID */
+.grid-wrap { padding: 0 32px 80px; max-width: 1120px; margin: 0 auto; }
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* CARD */
 .card {
-  background:var(--s1);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:36px;
-  margin-bottom:16px;
-  position:relative;
-  overflow:hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; cursor: pointer;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+  animation: fadeUp .4s ease both;
 }
-.card::before {
-  content:'';position:absolute;
-  top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(217,119,6,.3),transparent);
+.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--border2); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.card-tag {
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:2.5px;text-transform:uppercase;
-  color:var(--text3);margin-bottom:6px;
-  display:flex;align-items:center;gap:10px;
+.card-image {
+  width: 100%; height: 200px; overflow: hidden;
+  background: var(--surface2); position: relative;
 }
-.card-tag::after{content:'';flex:1;height:1px;background:var(--border);}
-
-.card h2 {
-  font-family:'Playfair Display',serif;
-  font-size:clamp(22px,4vw,30px);
-  font-weight:400;line-height:1.2;
-  margin-bottom:10px;
+.card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+.card:hover .card-image img { transform: scale(1.04); }
+.card-image-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--text3); font-size: 11px; font-weight: 500;
 }
-.card h2 em{font-style:italic;color:var(--amber2);}
-
+.card-image-placeholder svg { opacity: .35; }
+.card-body { padding: 18px 20px 16px; }
+.card-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.card-title { font-weight: 600; font-size: 15px; line-height: 1.35; }
+.card-price { font-weight: 700; font-size: 15px; color: var(--accent); white-space: nowrap; }
 .card-desc {
-  color:var(--text2);font-size:14px;line-height:1.75;
-  margin-bottom:28px;max-width:580px;
+  font-size: 13px; color: var(--text2); margin-bottom: 14px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.55;
+}
+.card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.card-author { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.author-name { font-size: 12px; font-weight: 600; }
+.card-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text3); }
+.comment-count { display: flex; align-items: center; gap: 3px; }
+
+/* CATEGORY TAGS */
+.cat-tag {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 100px; margin-bottom: 10px; letter-spacing: .02em;
 }
 
-/* ── STAT ROW ── */
-.stat-row {
-  display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;
+/* EMPTY & LOADING */
+.empty-state {
+  text-align: center; padding: 80px 20px; color: var(--text2); grid-column: 1 / -1;
 }
-.stat {
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:10px;padding:14px 18px;flex:1;min-width:120px;
+.empty-state .emoji { font-size: 48px; margin-bottom: 16px; }
+.empty-state h3 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+.loading-dots {
+  display: flex; gap: 6px; justify-content: center; padding: 80px; grid-column: 1 / -1;
 }
-.stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
-.stat-value{font-family:'Playfair Display',serif;font-size:20px;color:var(--amber2);}
-.stat-value.green{color:var(--green2);}
-.stat-value.red{color:var(--red2);}
-
-/* ── CHOICES ── */
-.choices{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
-
-.choice {
-  background:var(--s2);
-  border:1px solid var(--border2);
-  border-radius:12px;
-  padding:18px 22px;
-  cursor:pointer;
-  transition:all .2s;
-  display:grid;
-  grid-template-columns:1fr auto;
-  align-items:start;
-  gap:12px;
-  text-align:left;
+.loading-dots span {
+  width: 7px; height: 7px; background: var(--accent); border-radius: 50%;
+  animation: bounce 1.2s infinite; opacity: .6;
 }
-.choice:hover{border-color:var(--amber);background:rgba(217,119,6,.05);transform:translateX(4px);}
-.choice-main{font-size:14px;font-weight:500;line-height:1.4;color:var(--text);}
-.choice-sub{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
-.choice-impact{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;text-align:right;
-  white-space:nowrap;
-  flex-shrink:0;
-}
-.choice-impact .up{color:var(--green2);}
-.choice-impact .dn{color:var(--red2);}
-.choice-impact .nu{color:var(--amber2);}
-
-/* ── INPUT FIELDS ── */
-.field{margin-bottom:20px;}
-.field-label{
-  display:block;
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:2px;text-transform:uppercase;
-  color:var(--text3);margin-bottom:10px;
-}
-input[type=text],input[type=number]{
-  width:100%;background:var(--s2);
-  border:1px solid var(--border2);border-radius:10px;
-  color:var(--text);font-family:'Geologica',sans-serif;
-  font-size:16px;padding:14px 18px;outline:none;
-  transition:border-color .2s,box-shadow .2s;
-}
-input:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,.12);}
-input::placeholder{color:var(--text3);}
-
-.slider-wrap{margin-top:8px;}
-.slider-row{display:flex;align-items:center;gap:16px;}
-input[type=range]{
-  flex:1;-webkit-appearance:none;
-  height:2px;background:var(--border2);border-radius:2px;outline:none;
-}
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:18px;height:18px;
-  background:var(--amber2);border-radius:50%;cursor:pointer;
-  border:3px solid var(--bg);
-  box-shadow:0 0 0 1px var(--amber),0 2px 8px rgba(217,119,6,.4);
-}
-.sval{
-  font-family:'JetBrains Mono',monospace;font-size:13px;
-  color:var(--amber2);min-width:110px;text-align:right;
-}
-.shints{display:flex;justify-content:space-between;margin-top:6px;
-  font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);}
-
-/* ── BUTTON ── */
-.btn {
-  display:block;width:100%;
-  background:var(--amber2);color:#0a0800;
-  font-family:'Geologica',sans-serif;font-size:14px;font-weight:600;
-  padding:17px;border:none;border-radius:12px;cursor:pointer;
-  transition:all .2s;letter-spacing:.3px;margin-top:8px;
-}
-.btn:hover{background:var(--amber3);transform:translateY(-2px);box-shadow:0 8px 28px rgba(245,158,11,.25);}
-.btn.ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);margin-top:10px;}
-.btn.ghost:hover{border-color:var(--text2);color:var(--text);box-shadow:none;transform:none;}
-
-/* ── CONSEQUENCE BOX ── */
-.consequence {
-  background:rgba(217,119,6,.06);
-  border:1px solid rgba(217,119,6,.18);
-  border-radius:10px;padding:14px 18px;
-  margin-top:12px;font-size:13px;
-  color:var(--amber3);line-height:1.6;
-  display:none;animation:rise .3s ease;
-}
-.consequence.show{display:block;}
-.consequence.bad{background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.2);color:#fca5a5;}
-.consequence.good{background:rgba(5,150,105,.06);border-color:rgba(5,150,105,.2);color:#6ee7b7;}
-
-/* ── RESULT DASHBOARD ── */
-.result-hero{
-  text-align:center;padding:40px 0 32px;
-  border-bottom:1px solid var(--border);margin-bottom:32px;
-}
-.rh-age{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:3px;text-transform:uppercase;
-  color:var(--text3);margin-bottom:16px;
-}
-.rh-title{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(28px,5vw,42px);font-weight:400;
-  line-height:1.15;margin-bottom:12px;
-}
-.rh-title em{font-style:italic;color:var(--amber2);}
-.rh-sub{color:var(--text2);font-size:14px;line-height:1.7;max-width:500px;margin:0 auto;}
-
-.metrics-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;
-}
-.metric{
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:12px;padding:20px;text-align:center;
-}
-.metric-num{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(18px,3vw,26px);margin-bottom:4px;
-}
-.metric-lbl{
-  font-family:'JetBrains Mono',monospace;
-  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);
-}
-.metric-num.g{color:var(--green2);}
-.metric-num.a{color:var(--amber2);}
-.metric-num.r{color:var(--red2);}
-.metric-num.b{color:var(--blue2);}
-
-/* ── CHART ── */
-.chart-wrap{
-  background:var(--s1);border:1px solid var(--border);
-  border-radius:14px;padding:24px;margin-bottom:16px;
-}
-.chart-title{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:2px;text-transform:uppercase;
-  color:var(--text3);margin-bottom:20px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.chart-legend{display:flex;gap:20px;}
-.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
-.legend-dot{width:8px;height:8px;border-radius:50%;}
-
-#capitalChart{width:100%;height:220px;display:block;}
-
-/* ── DECISION LOG ── */
-.dec-log{display:flex;flex-direction:column;gap:0;}
-.dec-item{
-  display:flex;align-items:flex-start;gap:16px;
-  padding:14px 0;border-bottom:1px solid var(--border);
-}
-.dec-item:last-child{border-bottom:none;}
-.dec-age{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--amber2);
-  min-width:42px;padding-top:2px;
-}
-.dec-text{flex:1;}
-.dec-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
-.dec-choice{font-size:12px;color:var(--text2);}
-.dec-delta{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;text-align:right;white-space:nowrap;
+.loading-dots span:nth-child(2) { animation-delay: .2s; }
+.loading-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(.7); }
+  40% { transform: scale(1.2); opacity: 1; }
 }
 
-/* ── ANALYSIS BLOCKS ── */
-.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
-.ab{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:20px;}
-.ab-title{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
-.ab-line{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.ab-line:last-child{border-bottom:none;}
-.ab-line .val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber2);}
-.ab-line .val.g{color:var(--green2);}
-.ab-line .val.r{color:var(--red2);}
-
-/* ── COMPARISON BAR ── */
-.comp-bar-wrap{margin:8px 0;}
-.comp-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;}
-.comp-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;position:relative;}
-.comp-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1);}
-.comp-fill.your{background:linear-gradient(90deg,var(--amber),var(--amber3));}
-.comp-fill.alt{background:linear-gradient(90deg,var(--blue),var(--blue2));}
-
-/* ── VERDICT ── */
-.verdict{
-  border:1px solid var(--border2);border-radius:14px;padding:28px;
-  margin-top:16px;position:relative;overflow:hidden;
+/* OVERLAY */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(20,18,15,.5);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 200; align-items: center; justify-content: center; padding: 20px;
 }
-.verdict::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--amber),var(--amber3),transparent);}
-.verdict-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
-.verdict-text{font-family:'Playfair Display',serif;font-size:17px;line-height:1.6;color:var(--text);}
-.verdict-text em{color:var(--amber2);font-style:italic;}
+.overlay.open { display: flex; }
 
-@media(max-width:580px){
-  .metrics-grid{grid-template-columns:1fr 1fr;}
-  .analysis-grid{grid-template-columns:1fr;}
-  .card{padding:22px 18px;}
-  .choice{grid-template-columns:1fr;}
-  .choice-impact{text-align:left;}
-  .app{padding:32px 16px 80px;}
+/* MODAL */
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 24px; width: 100%; max-width: 520px; max-height: 92vh;
+  overflow-y: auto; box-shadow: var(--shadow-lg);
+  animation: popIn .25s cubic-bezier(.34,1.4,.64,1);
+}
+.modal::-webkit-scrollbar { width: 4px; }
+.modal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.94) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 28px 0;
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.modal-header h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+.close-btn {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s; flex-shrink: 0;
+}
+.close-btn:hover { background: var(--border2); color: var(--text); }
+.modal-body { padding: 20px 28px 28px; }
+
+/* FORM */
+.form-group { margin-bottom: 16px; }
+label {
+  display: block; font-size: 11px; font-weight: 600; color: var(--text3);
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px;
+}
+input, textarea, select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: 'Sora', sans-serif; font-size: 14px; padding: 11px 14px;
+  transition: border-color .15s, box-shadow .15s; outline: none; resize: vertical;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent); background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(200,133,58,.1);
+}
+input::placeholder, textarea::placeholder { color: var(--text3); }
+select option { background: var(--surface); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* IMAGE UPLOAD */
+.image-upload-area {
+  border: 2px dashed var(--border2); border-radius: var(--radius-sm);
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s; background: var(--surface2);
+  position: relative;
+}
+.image-upload-area:hover, .image-upload-area.drag-over {
+  border-color: var(--accent); background: var(--accent-lt);
+}
+.image-upload-area input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  width: 100%; height: 100%; padding: 0; border: none; background: transparent; box-shadow: none;
+}
+.upload-icon { margin-bottom: 8px; color: var(--text3); }
+.upload-text { font-size: 13px; color: var(--text2); font-weight: 500; }
+.upload-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+.image-preview-wrap {
+  display: none; position: relative; border-radius: var(--radius-sm);
+  overflow: hidden; height: 180px; background: var(--surface2);
+}
+.image-preview-wrap.has-image { display: block; }
+.image-preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.image-remove-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,.6); color: #fff; border: none; border-radius: 50%;
+  width: 28px; height: 28px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  transition: background .15s;
+}
+.image-remove-btn:hover { background: rgba(0,0,0,.85); }
+
+.upload-progress {
+  display: none; height: 3px; background: var(--border);
+  border-radius: 100px; margin-top: 8px; overflow: hidden;
+}
+.upload-progress.show { display: block; }
+.upload-progress-bar {
+  height: 100%; background: var(--accent); border-radius: 100px; transition: width .2s ease; width: 0%;
+}
+
+.btn-submit {
+  width: 100%; background: var(--text); color: var(--bg); border: none;
+  border-radius: var(--radius-sm); font-family: 'Sora', sans-serif;
+  font-size: 14px; font-weight: 600; padding: 14px; cursor: pointer;
+  margin-top: 8px; transition: background .2s, transform .15s;
+}
+.btn-submit:hover { background: var(--accent); transform: translateY(-1px); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* DETAIL MODAL */
+.detail-modal { max-width: 600px; }
+.detail-image {
+  width: 100%; height: 280px; overflow: hidden;
+  background: var(--surface2); border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+}
+.detail-image img { width: 100%; height: 100%; object-fit: cover; }
+.detail-image-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center; color: var(--text3);
+}
+.detail-price-big {
+  font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 900;
+  color: var(--accent); margin: 12px 0 10px; line-height: 1;
+}
+.detail-desc { color: var(--text2); font-size: 14px; line-height: 1.75; margin-bottom: 20px; white-space: pre-wrap; }
+.detail-seller {
+  background: var(--surface2); border-radius: var(--radius-sm);
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  margin-bottom: 24px; border: 1px solid var(--border);
+}
+.detail-seller .avatar { width: 42px; height: 42px; font-size: 15px; }
+.seller-info small { display: block; font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.seller-info strong { font-size: 14px; font-weight: 600; display: block; margin: 2px 0; }
+.seller-contact { font-size: 13px; color: var(--blue); }
+.modal-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+.comments-section h3 { font-weight: 600; font-size: 14px; margin-bottom: 16px; }
+.comment-list { margin-bottom: 16px; max-height: 260px; overflow-y: auto; }
+.comment-list::-webkit-scrollbar { width: 4px; }
+.comment-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+.comment-item { display: flex; gap: 10px; margin-bottom: 12px; animation: fadeUp .25s ease both; }
+.comment-bubble {
+  background: var(--surface2); border-radius: 4px 12px 12px 12px;
+  padding: 10px 14px; flex: 1; border: 1px solid var(--border);
+}
+.comment-bubble .c-name { font-size: 12px; font-weight: 700; margin-bottom: 3px; }
+.comment-bubble .c-text { font-size: 13px; color: var(--text2); }
+.comment-bubble .c-time { font-size: 11px; color: var(--text3); margin-top: 5px; }
+.no-comments { text-align: center; color: var(--text3); font-size: 13px; padding: 20px; }
+.comment-form { display: flex; gap: 8px; align-items: flex-end; }
+.comment-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.comment-form input { border-radius: 8px; padding: 9px 12px; font-size: 13px; }
+.send-btn {
+  background: var(--text); color: var(--bg); border: none; border-radius: 8px;
+  padding: 0 16px; font-weight: 600; font-size: 13px; font-family: 'Sora', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: background .15s;
+  height: 38px; display: flex; align-items: center;
+}
+.send-btn:hover { background: var(--accent); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* CONFIG BANNER */
+.config-banner {
+  background: #fef3e8; border: 1px solid #f0c88a; border-radius: var(--radius-sm);
+  padding: 16px 20px; margin: 0 32px 24px; font-size: 13px; display: none; color: var(--text2);
+}
+.config-banner.show { display: block; }
+.config-banner h4 { font-weight: 700; font-size: 13px; color: var(--accent-dk); margin-bottom: 6px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  font-weight: 600; font-size: 13px; padding: 12px 24px;
+  border-radius: 100px; z-index: 999;
+  transition: transform .35s cubic-bezier(.34,1.4,.64,1);
+  pointer-events: none; white-space: nowrap; box-shadow: var(--shadow);
+  background: var(--text); color: var(--bg);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err { background: #c0392b; color: #fff; }
+.toast.ok  { background: var(--green); color: #fff; }
+
+@media (max-width: 600px) {
+  header { padding: 0 20px; }
+  .hero { padding: 48px 20px 40px; }
+  .filters-wrap, .grid-wrap { padding-left: 20px; padding-right: 20px; }
+  .form-row { grid-template-columns: 1fr; }
+  .modal-header { padding: 20px 20px 0; }
+  .modal-body { padding: 16px 20px 24px; }
+  .config-banner { margin: 0 20px 20px; }
+  .detail-image { height: 200px; }
 }
 </style>
 </head>
 <body>
-<div class="app">
 
-  <header class="site-header">
-    <div class="logo">KiberOne · <span>Жизненный путь</span></div>
-    <div class="age-badge" id="ageBadge">18 лет</div>
-  </header>
+<header>
+  <div class="logo">Kiber<span>Market</span></div>
+  <div class="header-badge">Объявлений: <span id="listingCount">0</span></div>
+</header>
 
-  <div class="timeline" id="timeline"></div>
+<div class="hero">
+  <div class="hero-eyebrow">
+    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    Доска объявлений класса
+  </div>
+  <h1>Продавай, покупай,<br><em>договаривайся</em></h1>
+  <p>Вещи, услуги, хобби — разместить объявление можно за минуту. Найди покупателя среди своих.</p>
+  <button class="btn-post" onclick="openPostModal()">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Разместить объявление
+  </button>
+</div>
 
-  <!-- ═══ SCREEN 0: СТАРТ ═══ -->
-  <div class="screen active" id="s0">
-    <div class="card">
-      <div class="card-tag">Начало симуляции</div>
-      <h2>Симулятор<br><em>жизненного пути</em></h2>
-      <p class="card-desc">Тебе 18 лет. Впереди 47 лет финансовых решений — от выбора образования до пенсионной стратегии. Каждый выбор меняет траекторию капитала. В конце — полный финансовый портрет твоей жизни.</p>
+<div class="config-banner" id="configBanner">
+  <h4>⚙️ Firebase не настроен</h4>
+  <p>Замени значения в firebaseConfig на данные из своего проекта. Включи Firestore и Storage в Firebase Console.</p>
+</div>
 
-      <div class="field">
-        <label class="field-label">Твоё имя</label>
-        <input type="text" id="inp_name" placeholder="Введи имя...">
-      </div>
-      <div class="field">
-        <label class="field-label">Стартовые сбережения (семья дала на старт)</label>
-        <div class="slider-wrap">
-          <div class="slider-row">
-            <input type="range" id="sl_start" min="0" max="5000000" step="100000" value="500000" oninput="updSl('sl_start','sv_start')">
-            <div class="sval" id="sv_start">500 000 ₸</div>
+<div class="filters-wrap">
+  <div class="filters" id="filterBar">
+    <button class="filter-btn active" data-cat="all">Все</button>
+    <button class="filter-btn" data-cat="вещи">🏷️ Вещи</button>
+    <button class="filter-btn" data-cat="услуги">🎨 Услуги</button>
+    <button class="filter-btn" data-cat="хобби">✨ Хобби</button>
+    <button class="filter-btn" data-cat="другое">📦 Другое</button>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <div class="listings-grid" id="listingsGrid">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- MODAL: POST -->
+<div class="overlay" id="postOverlay" onclick="closeOnBg(event,'postOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Новое объявление</h2>
+      <button class="close-btn" onclick="closeModal('postOverlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Фото товара</label>
+        <div class="image-preview-wrap" id="previewWrap">
+          <img id="previewImg" src="" alt="preview">
+          <button class="image-remove-btn" onclick="removeImage(event)">×</button>
+        </div>
+        <div class="image-upload-area" id="uploadArea">
+          <input type="file" id="imageFile" accept="image/*" onchange="handleImageSelect(event)">
+          <div class="upload-icon">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3">
+              <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
           </div>
-          <div class="shints"><span>0 ₸</span><span>5 000 000 ₸</span></div>
+          <div class="upload-text">Нажми или перетащи фото</div>
+          <div class="upload-hint">JPG, PNG, WEBP · до 5 МБ</div>
+        </div>
+        <div class="upload-progress" id="uploadProgress">
+          <div class="upload-progress-bar" id="uploadProgressBar"></div>
         </div>
       </div>
-      <div class="field">
-        <label class="field-label">Базовый уровень финансовой грамотности</label>
-        <div class="slider-wrap">
-          <div class="slider-row">
-            <input type="range" id="sl_iq" min="1" max="10" step="1" value="5" oninput="updSl('sl_iq','sv_iq',true)">
-            <div class="sval" id="sv_iq">5 / 10</div>
-          </div>
-          <div class="shints"><span>Новичок</span><span>Эксперт</span></div>
+
+      <div class="form-group">
+        <label>Твоё имя</label>
+        <input type="text" id="authorName" placeholder="Например: Алия" maxlength="40">
+      </div>
+      <div class="form-group">
+        <label>Заголовок объявления</label>
+        <input type="text" id="listingTitle" placeholder="Что продаёшь или предлагаешь?" maxlength="80">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Категория</label>
+          <select id="listingCat">
+            <option value="вещи">🏷️ Вещи</option>
+            <option value="услуги">🎨 Услуги</option>
+            <option value="хобби">✨ Хобби</option>
+            <option value="другое">📦 Другое</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Цена (тенге)</label>
+          <input type="number" id="listingPrice" placeholder="500" min="0">
         </div>
       </div>
-      <button class="btn" onclick="startSim()">Начать жизнь →</button>
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="listingDesc" rows="3" placeholder="Расскажи подробнее: состояние, почему продаёшь..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Контакт (необязательно)</label>
+        <input type="text" id="listingContact" placeholder="WhatsApp, Telegram, номер..." maxlength="80">
+      </div>
+      <button class="btn-submit" id="submitBtn" onclick="submitListing()">Опубликовать →</button>
     </div>
   </div>
+</div>
 
-  <!-- ЭКРАНЫ РЕШЕНИЙ s1..s20 генерируются JS -->
-  <div id="decScreens"></div>
-
-  <!-- ═══ ЭКРАН РЕЗУЛЬТАТА ═══ -->
-  <div class="screen" id="sResult">
-    <div class="card">
-      <div class="result-hero">
-        <div class="rh-age">Итог · Возраст 65 лет</div>
-        <div class="rh-title" id="rTitle">Финансовый<br><em>портрет жизни</em></div>
-        <div class="rh-sub" id="rSub"></div>
-      </div>
-
-      <div class="metrics-grid" id="metricsGrid"></div>
+<!-- MODAL: DETAIL -->
+<div class="overlay" id="detailOverlay" onclick="closeOnBg(event,'detailOverlay')">
+  <div class="modal detail-modal">
+    <div class="modal-header">
+      <div id="detailCatTag"></div>
+      <button class="close-btn" onclick="closeModal('detailOverlay')">×</button>
     </div>
-
-    <div class="chart-wrap">
-      <div class="chart-title">
-        <span>Капитал по годам жизни</span>
-        <div class="chart-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--amber2)"></div>Твой путь</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--blue2)"></div>Альтернатива</div>
+    <div class="modal-body">
+      <div class="detail-image" id="detailImage">
+        <div class="detail-image-placeholder">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
         </div>
       </div>
-      <canvas id="capitalChart"></canvas>
+      <h2 id="detailTitle" style="font-family:'Playfair Display',serif;font-size:24px;line-height:1.2;font-weight:700;"></h2>
+      <div class="detail-price-big" id="detailPrice"></div>
+      <p class="detail-desc" id="detailDesc"></p>
+      <div class="detail-seller">
+        <div class="avatar" id="detailAvatar"></div>
+        <div class="seller-info">
+          <small>Продавец</small>
+          <strong id="detailAuthor"></strong>
+          <span class="seller-contact" id="detailContact"></span>
+        </div>
+      </div>
+      <hr class="modal-divider">
+      <div class="comments-section">
+        <h3>💬 Комментарии (<span id="commentCountLabel">0</span>)</h3>
+        <div class="comment-list" id="commentList">
+          <div class="no-comments">Пока нет комментариев. Будь первым!</div>
+        </div>
+        <div class="comment-form">
+          <div class="comment-inputs">
+            <input type="text" id="commentName" placeholder="Твоё имя" maxlength="40">
+            <input type="text" id="commentText" placeholder="Напиши вопрос или предложение..." onkeydown="if(event.key==='Enter')sendComment()">
+          </div>
+          <button class="send-btn" id="sendCommentBtn" onclick="sendComment()">→</button>
+        </div>
+      </div>
     </div>
-
-    <div class="card">
-      <div class="card-tag">Анализ решений</div>
-      <div class="analysis-grid" id="analysisGrid"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-tag">Сравнение путей</div>
-      <div id="compBlock"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-tag">Все решения</div>
-      <div class="dec-log" id="decLog"></div>
-    </div>
-
-    <div class="verdict">
-      <div class="verdict-label">Вердикт</div>
-      <div class="verdict-text" id="verdictText"></div>
-    </div>
-
-    <button class="btn ghost" onclick="restartSim()" style="margin-top:20px">↺ Прожить заново</button>
   </div>
+</div>
 
-</div><!-- /app -->
+<div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// ДАННЫЕ: 20 РАЗВИЛОК
-// ═══════════════════════════════════════════════════════
-const DECISIONS = [
-  {
-    id: 0, age: 18,
-    title: 'Образование',
-    titleEm: null,
-    desc: 'Ты окончил школу. Впереди один из самых важных выборов в жизни — что делать дальше. Это решение определит твой стартовый доход, социальный круг и карьерный потолок на годы вперёд.',
-    options: [
-      {
-        text: 'Топовый университет — экономика / IT',
-        sub: '4 года, высокие расходы, сильная сеть контактов',
-        impact: { salary: 420000, capital: -1800000, investRate: 0.12, risk: 'medium' },
-        impactLabel: ['+420к/мес', '-1.8M стоимость'],
-        type: 'good',
-        consequence: 'Диплом топ-вуза открывает двери в крупные компании. Первые 4 года — расходы, потом рост зарплаты компенсирует всё.',
-        conType: 'good'
-      },
-      {
-        text: 'Государственный вуз на бюджете',
-        sub: '4 года, минимальные расходы, средняя сеть',
-        impact: { salary: 280000, capital: -300000, investRate: 0.10, risk: 'low' },
-        impactLabel: ['+280к/мес', '-300к расходы'],
-        type: 'neutral',
-        consequence: 'Бюджетное образование — отличный старт без долгов. Зарплата ниже, но свобода от кредитов даёт финансовую гибкость.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Колледж + работа сразу',
-        sub: '2 года учёбы, начинаешь зарабатывать раньше',
-        impact: { salary: 180000, capital: 600000, investRate: 0.08, risk: 'low' },
-        impactLabel: ['+180к/мес', '+600к ранний старт'],
-        type: 'neutral',
-        consequence: 'Раннее начало работы — ценный опыт. Доход ниже в долгосрочной перспективе, но нет долгов и есть практика.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Онлайн-курсы + фриланс с нуля',
-        sub: 'Самообучение, высокий риск, неограниченный потолок',
-        impact: { salary: 200000, capital: 0, investRate: 0.15, risk: 'high' },
-        impactLabel: ['+200к/мес старт', 'риск высокий'],
-        type: 'neutral',
-        consequence: 'Путь предпринимателя — нет потолка, но и нет гарантий. Через 5 лет ты можешь зарабатывать 2M или всё ещё бороться.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 1, age: 20,
-    title: 'Первая инвестиция',
-    titleEm: null,
-    desc: 'Тебе 20. Ты наткнулся на информацию об инвестировании. Одноклассник говорит, что уже вложил в крипто и удвоил деньги. Что делаешь с первыми накоплениями?',
-    options: [
-      {
-        text: 'Открыть брокерский счёт, купить индексный ETF',
-        sub: 'S&P 500 или казахстанский фонд, 10% годовых исторически',
-        impact: { capitalMult: 1.0, investRate: 0.02, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['+2% к ставке', 'сложный %'],
-        type: 'good',
-        consequence: 'ETF — один из лучших инструментов долгосрочного инвестора. Сложный процент начнёт работать немедленно.',
-        conType: 'good'
-      },
-      {
-        text: 'Вложить в крипту — "всё или ничего"',
-        sub: 'Биткоин, высокая волатильность, шанс ×10 или ×0',
-        impact: { capitalMult: 0.5, investRate: -0.02, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['-50% вероятно', 'очень высокий риск'],
-        type: 'bad',
-        consequence: 'Большинство начинающих крипто-инвесторов теряют деньги в первый год из-за эмоциональных решений.',
-        conType: 'bad'
-      },
-      {
-        text: 'Депозит в банке под 12%',
-        sub: 'Надёжно, ликвидно, но не обгоняет инфляцию',
-        impact: { capitalMult: 1.0, investRate: -0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['12% в год', 'ниже инфляции'],
-        type: 'neutral',
-        consequence: 'Депозит безопасен, но при инфляции 12-15% реальная доходность близка к нулю.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Вложить в своё образование / курсы',
-        sub: 'Навыки, которые увеличат доход',
-        impact: { capitalMult: 0.9, investRate: 0.01, bonusCapital: 0, salaryMult: 1.15 },
-        impactLabel: ['+15% к зарплате', 'инвестиция в себя'],
-        type: 'good',
-        consequence: 'Инвестиция в навыки даёт самый высокий ROI в молодом возрасте — твой человеческий капитал растёт.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 2, age: 22,
-    title: 'Первая работа',
-    titleEm: null,
-    desc: 'Ты получил первый оффер. Выбор работы — это не только зарплата. Это культура, рост, опыт и сеть контактов. Куда пойдёшь?',
-    options: [
-      {
-        text: 'Крупная корпорация — стабильность и бренд',
-        sub: 'Высокая зарплата, медленный рост, бюрократия',
-        impact: { salaryMult: 1.3, capitalMult: 1.0, investRate: 0.0, bonusCapital: 500000 },
-        impactLabel: ['+30% к зарплате', '+500к бонус'],
-        type: 'neutral',
-        consequence: 'Бренд в резюме ценен. Но в корпорации сложно расти быстро — всё медленнее.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Стартап — доля в компании и опыт',
-        sub: 'Ниже зарплата, но опционы и быстрый рост',
-        impact: { salaryMult: 0.9, capitalMult: 1.0, investRate: 0.02, bonusCapital: 2000000 },
-        impactLabel: ['зарплата -10%', '+2M потенциал опционов'],
-        type: 'good',
-        consequence: 'Стартап — школа предпринимательства. Если компания выстрелит, опционы окупятся многократно.',
-        conType: 'good'
-      },
-      {
-        text: 'Государственная служба',
-        sub: 'Стабильность, пенсионные накопления, медленный рост',
-        impact: { salaryMult: 0.75, capitalMult: 1.0, investRate: 0.0, bonusCapital: 0 },
-        impactLabel: ['зарплата -25%', 'пенсия гос.'],
-        type: 'neutral',
-        consequence: 'Стабильность — это тоже ценность. Но доход существенно ниже рынка в долгосрочной перспективе.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Фриланс / собственный проект',
-        sub: 'Полная свобода, нестабильный доход',
-        impact: { salaryMult: 0.85, capitalMult: 1.0, investRate: 0.03, bonusCapital: 0 },
-        impactLabel: ['доход нестабильный', '+3% к ставке инвест.'],
-        type: 'neutral',
-        consequence: 'Фриланс формирует предпринимательское мышление. Потолка нет, но и дна тоже.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 3, age: 24,
-    title: 'Жильё',
-    titleEm: null,
-    desc: 'Тебе 24. Вопрос жилья стоит остро. Аренда или ипотека — один из самых спорных финансовых вопросов. Реальные цифры Казахстана: квартира в Алматы ~35M ₸, ипотека под 14%, аренда ~250к/мес.',
-    options: [
-      {
-        text: 'Ипотека — своё жильё сейчас',
-        sub: 'Первоначальный взнос 20%, ежемесячный платёж ~380к',
-        impact: { capitalMult: 0.8, salaryMult: 1.0, investRate: -0.01, bonusCapital: -7000000 },
-        impactLabel: ['-7M взнос', '-380к/мес 20 лет'],
-        type: 'neutral',
-        consequence: 'Ипотека — это принудительные сбережения. Через 20 лет квартира твоя и будет стоить дороже. Но переплата огромная.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Аренда + инвестировать разницу',
-        sub: 'Аренда 250к, разницу 130к вкладываешь каждый месяц',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.02, bonusCapital: 0 },
-        impactLabel: ['+130к/мес в инвест.', 'гибкость'],
-        type: 'good',
-        consequence: 'Математически аренда + инвестиции часто выгоднее ипотеки. Но нет актива и нет ощущения "своего".',
-        conType: 'good'
-      },
-      {
-        text: 'Купить квартиру за наличные — ждать и копить',
-        sub: '5 лет копить агрессивно, купить без ипотеки',
-        impact: { capitalMult: 0.6, salaryMult: 1.0, investRate: 0.0, bonusCapital: -35000000 },
-        impactLabel: ['-35M через 5 лет', 'без переплаты'],
-        type: 'neutral',
-        consequence: 'Покупка без ипотеки экономит миллионы на процентах. Но 5 лет аренды — тоже расход.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Жить с родителями, максимально инвестировать',
-        sub: 'Нет расходов на жильё, весь излишек — в рост',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.04, bonusCapital: 3000000 },
-        impactLabel: ['+3M за 3 года', '+4% ставка'],
-        type: 'good',
-        consequence: 'Самый математически выгодный вариант для молодых. Социально спорный, финансово — мощный старт.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 4, age: 26,
-    title: 'Смена карьеры',
-    titleEm: null,
-    desc: 'Тебе 26. Ты 4 года в профессии. Появляются новые возможности: продолжить в той же сфере, сменить индустрию или создать своё. Это переломный момент.',
-    options: [
-      {
-        text: 'Остаться — стать экспертом в своей нише',
-        sub: 'Глубина экспертизы, рост внутри компании',
-        impact: { salaryMult: 1.2, capitalMult: 1.0, investRate: 0.0, bonusCapital: 0 },
-        impactLabel: ['+20% к доходу', 'стабильный рост'],
-        type: 'neutral',
-        consequence: 'Узкая экспертиза = высокая стоимость на рынке. Через 5 лет ты можешь быть одним из лучших.',
-        conType: 'good'
-      },
-      {
-        text: 'Перейти в IT / tech — переквалификация',
-        sub: '1 год учёбы, потом x2 к зарплате',
-        impact: { salaryMult: 0.7, capitalMult: 0.95, investRate: 0.01, bonusCapital: 0 },
-        impactLabel: ['год -30% дохода', 'потом +100%'],
-        type: 'good',
-        consequence: 'Переход в IT — один из лучших ROI-решений десятилетия. Год трудного переобучения, потом резкий скачок.',
-        conType: 'good'
-      },
-      {
-        text: 'Открыть своё дело',
-        sub: 'Вложить накопления, 3 года риска, потенциал ×5',
-        impact: { salaryMult: 0.5, capitalMult: 0.6, investRate: 0.05, bonusCapital: 0 },
-        impactLabel: ['3 года низкий доход', 'потенциал ×5'],
-        type: 'neutral',
-        consequence: 'Бизнес — самый высокий потенциал, но большинство закрываются в первые 3 года. Риск реален.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Уехать работать за рубеж',
-        sub: 'ОАЭ, Европа — доход в $, расходы выше',
-        impact: { salaryMult: 2.5, capitalMult: 1.0, investRate: 0.02, bonusCapital: 0 },
-        impactLabel: ['доход ×2.5', 'расходы выше'],
-        type: 'good',
-        consequence: 'Работа в валюте при правильном управлении расходами — мощный акселератор капитала.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 5, age: 28,
-    title: 'Кредит и долги',
-    titleEm: null,
-    desc: 'Тебе 28. Банк предлагает потребительский кредит под 24% на покупку машины. Есть несколько стратегий управления кредитной нагрузкой.',
-    options: [
-      {
-        text: 'Взять кредит на авто, я заслужил',
-        sub: '4 500 000 ₸, 5 лет, итого переплата 2.7M',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: -0.03, bonusCapital: -2700000 },
-        impactLabel: ['-2.7M переплата', 'нагрузка на бюджет'],
-        type: 'bad',
-        consequence: 'Кредит на авто — один из самых невыгодных. Машина дешевеет, долг растёт. Ты платишь за актив, который теряет ценность.',
-        conType: 'bad'
-      },
-      {
-        text: 'Купить б/у авто за наличные',
-        sub: '1 500 000 ₸, накопил сам, никаких процентов',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.01, bonusCapital: -1500000 },
-        impactLabel: ['-1.5M разово', 'без переплат'],
-        type: 'good',
-        consequence: 'Б/у авто за наличные — финансово грамотный выбор. Нет долгов, нет переплат, сэкономленные проценты работают на тебя.',
-        conType: 'good'
-      },
-      {
-        text: 'Обходиться без машины — такси/аренда',
-        sub: 'Экономия 200к/мес по сравнению с авто',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.02, bonusCapital: 1200000 },
-        impactLabel: ['+200к/мес экономия', 'инвестируешь разницу'],
-        type: 'good',
-        consequence: 'Авто в Алматы часто не нужно. Экономия на содержании машины — это реальные инвестиции.',
-        conType: 'good'
-      },
-      {
-        text: 'Машина для бизнеса / Uber — актив',
-        sub: 'Авто работает на тебя и генерирует доход',
-        impact: { capitalMult: 0.9, salaryMult: 1.0, investRate: 0.0, bonusCapital: 800000 },
-        impactLabel: ['-10% капитал', '+800к пассивный доход'],
-        type: 'neutral',
-        consequence: 'Авто как инструмент заработка — совсем другая логика. Актив работает, а не просто стоит.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 6, age: 30,
-    title: 'Семья и финансы',
-    titleEm: null,
-    desc: 'Тебе 30. Ты вступаешь в серьёзные отношения. Финансовые вопросы в браке — один из главных источников конфликтов. Как выстроить финансовую модель семьи?',
-    options: [
-      {
-        text: 'Общий бюджет, общие цели',
-        sub: 'Полная прозрачность, единая стратегия',
-        impact: { salaryMult: 1.5, capitalMult: 1.0, investRate: 0.01, bonusCapital: 0 },
-        impactLabel: ['доход ×1.5 (два)', '+совместные цели'],
-        type: 'good',
-        consequence: 'Двойной доход при умном управлении ускоряет накопление капитала в разы.',
-        conType: 'good'
-      },
-      {
-        text: 'Раздельные финансы + общий фонд',
-        sub: 'Автономия + ответственность',
-        impact: { salaryMult: 1.4, capitalMult: 1.0, investRate: 0.01, bonusCapital: 0 },
-        impactLabel: ['баланс личного и общего', 'гибкость'],
-        type: 'good',
-        consequence: 'Раздельные финансы снижают конфликты и сохраняют финансовую независимость каждого.',
-        conType: 'good'
-      },
-      {
-        text: 'Партнёр управляет всем',
-        sub: 'Ты отдаёшь контроль, фокус на работе',
-        impact: { salaryMult: 1.3, capitalMult: 0.9, investRate: -0.01, bonusCapital: 0 },
-        impactLabel: ['риск потери контроля', 'зависимость'],
-        type: 'bad',
-        consequence: 'Отдавать финансовый контроль полностью — большой риск. Всегда нужно понимать, что происходит с деньгами.',
-        conType: 'bad'
-      },
-      {
-        text: 'Оставаться одному — фокус на карьере',
-        sub: 'Нет иждивенцев, максимум личной свободы',
-        impact: { salaryMult: 1.0, capitalMult: 1.0, investRate: 0.02, bonusCapital: 0 },
-        impactLabel: ['100% доход свой', 'нет доп. расходов'],
-        type: 'neutral',
-        consequence: 'Одиночество финансово выгодно в краткосрочной перспективе. Долгосрочно — нет эффекта двойного дохода.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 7, age: 32,
-    title: 'Пассивный доход',
-    titleEm: null,
-    desc: 'Тебе 32. У тебя есть накопленный капитал. Самое время думать о пассивных источниках. Куда направишь деньги?',
-    options: [
-      {
-        text: 'Инвестиционная квартира для сдачи',
-        sub: 'Доходность 5-7% годовых, стабильно',
-        impact: { capitalMult: 0.7, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['доходность 5-7%/год', 'физический актив'],
-        type: 'neutral',
-        consequence: 'Недвижимость — понятный актив. Доходность невысокая, но растёт в цене и защищает от инфляции.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Дивидендный портфель акций',
-        sub: 'Дивиденды 4-8%, ликвидность высокая',
-        impact: { capitalMult: 1.0, investRate: 0.02, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['+2% к доходности', 'ликвидность'],
-        type: 'good',
-        consequence: 'Дивидендные акции создают денежный поток без потери ликвидности. Реинвестирование — сила.',
-        conType: 'good'
-      },
-      {
-        text: 'Открыть онлайн-бизнес / контент',
-        sub: 'YouTube, курсы, блог — масштабируемый доход',
-        impact: { capitalMult: 0.95, investRate: 0.03, bonusCapital: 0, salaryMult: 1.2 },
-        impactLabel: ['+20% к доходу', 'масштабируемость'],
-        type: 'good',
-        consequence: 'Цифровые активы масштабируются без пропорционального роста усилий. Высокий потенциал.',
-        conType: 'good'
-      },
-      {
-        text: 'Дать деньги в долг под процент',
-        sub: 'Займы друзьям/коллегам, ненадёжно',
-        impact: { capitalMult: 0.85, investRate: -0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['риск не вернут', 'рушит отношения'],
-        type: 'bad',
-        consequence: 'Давать деньги в долг близким — один из лучших способов потерять и деньги, и отношения.',
-        conType: 'bad'
-      }
-    ]
-  },
-  {
-    id: 8, age: 34,
-    title: 'Дети',
-    titleEm: null,
-    desc: 'Тебе 34. Вопрос детей — один из самых дорогих финансовых решений. В Казахстане воспитание ребёнка до 18 лет обходится в 15-25 миллионов тенге. Как подготовиться?',
-    options: [
-      {
-        text: 'Завести детей, открыть накопительный счёт ребёнку',
-        sub: 'Дети + финансовое планирование с рождения',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.0, bonusCapital: -15000000 },
-        impactLabel: ['-15M за 18 лет', 'вложение в будущее'],
-        type: 'neutral',
-        consequence: 'Финансово грамотный подход: накопительный счёт для ребёнка с рождения — мощный инструмент.',
-        conType: 'good'
-      },
-      {
-        text: 'Завести детей без планирования',
-        sub: 'Расходы будут — плана нет',
-        impact: { capitalMult: 0.85, salaryMult: 1.0, investRate: -0.02, bonusCapital: -20000000 },
-        impactLabel: ['-20M нерегулярно', 'хаотичные расходы'],
-        type: 'bad',
-        consequence: 'Дети без финансового плана — частая причина отказа от инвестиций и накоплений на десятилетия.',
-        conType: 'bad'
-      },
-      {
-        text: 'Отложить решение — больше заработать сначала',
-        sub: 'Ещё 5-7 лет фокус на карьере и капитале',
-        impact: { capitalMult: 1.0, salaryMult: 1.15, investRate: 0.02, bonusCapital: 5000000 },
-        impactLabel: ['+5M за 5 лет', '+15% к зарплате'],
-        type: 'neutral',
-        consequence: 'Более зрелый возраст и капитал дают больше ресурсов для воспитания. Финансово разумно.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Осознанно без детей — фокус на жизни',
-        sub: 'Полная финансовая свобода, другие приоритеты',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.03, bonusCapital: 15000000 },
-        impactLabel: ['+15M экономия', 'полная свобода'],
-        type: 'neutral',
-        consequence: 'Экономия на детях — огромный капитал. Вопрос ценностей, не финансов.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 9, age: 36,
-    title: 'Финансовый кризис',
-    titleEm: null,
-    desc: 'Тебе 36. Экономический кризис. Рынки упали на 40%. Коллеги паникуют, советуют продавать всё. Как ты реагируешь?',
-    options: [
-      {
-        text: 'Ничего не делать — держать позиции',
-        sub: 'Исторически рынки всегда восстанавливались',
-        impact: { capitalMult: 1.0, investRate: 0.02, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['сохранить позиции', '+2% доп. доходность'],
-        type: 'good',
-        consequence: 'Правило №1 инвестора: не продавать в панике. Те, кто держат позиции в кризис, всегда в выигрыше.',
-        conType: 'good'
-      },
-      {
-        text: 'Докупить — "распродажа" активов',
-        sub: 'Усреднить позицию на низком рынке',
-        impact: { capitalMult: 0.95, investRate: 0.04, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['покупка на дне', '+4% долгосрочно'],
-        type: 'good',
-        consequence: 'Покупка в кризис — стратегия Баффета. Самый высокий долгосрочный результат среди всех вариантов.',
-        conType: 'good'
-      },
-      {
-        text: 'Продать всё — "сохранить хоть что-то"',
-        sub: 'Зафиксировать убыток, уйти в кеш',
-        impact: { capitalMult: 0.6, investRate: -0.03, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['-40% реальный убыток', 'выйти в убыток'],
-        type: 'bad',
-        consequence: 'Продажа на дне — самая дорогая ошибка инвестора. Убыток фиксируется, восстановление пропускается.',
-        conType: 'bad'
-      },
-      {
-        text: 'Диверсифицировать — часть в золото, часть держать',
-        sub: 'Ребалансировка портфеля',
-        impact: { capitalMult: 0.85, investRate: 0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['защита части', 'умеренная стратегия'],
-        type: 'neutral',
-        consequence: 'Диверсификация снижает риск. Не идеально, но разумно — потери меньше, чем у паникёров.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 10, age: 38,
-    title: 'Страхование и защита',
-    titleEm: null,
-    desc: 'Тебе 38. У тебя есть активы, семья, обязательства. Пора серьёзно думать о защите. Страховка — скучно, но критически важно.',
-    options: [
-      {
-        text: 'Полный пакет страхования: жизнь, здоровье, имущество',
-        sub: 'Расходы 150к/год, полная защита',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: -150000, salaryMult: 1.0 },
-        impactLabel: ['-150к/год', 'полная защита'],
-        type: 'good',
-        consequence: 'Один серьёзный страховой случай без страховки может уничтожить весь накопленный капитал за годы.',
-        conType: 'good'
-      },
-      {
-        text: 'Только обязательное — минимум',
-        sub: 'Базовая защита, экономия на взносах',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['минимальная защита', 'экономия взносов'],
-        type: 'neutral',
-        consequence: 'Риск остаётся непокрытым. Дешевле сейчас, но один инцидент — и потери несопоставимы.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Не страховаться — "со мной не случится"',
-        sub: 'Самая распространённая ошибка',
-        impact: { capitalMult: 0.7, investRate: -0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['высокий скрытый риск', '-30% при инциденте'],
-        type: 'bad',
-        consequence: '"Со мной не случится" — самая дорогая фраза в финансах. Вероятность 1% × масштаб потерь = огромный риск.',
-        conType: 'bad'
-      },
-      {
-        text: 'Накопительное страхование как инструмент',
-        sub: 'Страховка + накопления в одном',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: -500000, salaryMult: 1.0 },
-        impactLabel: ['-500к/год', 'защита + рост'],
-        type: 'neutral',
-        consequence: 'Накопительное страхование — компромисс. Доходность ниже рынка, но защита есть.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 11, age: 40,
-    title: 'Середина жизни',
-    titleEm: null,
-    desc: 'Тебе 40. Оглядываешься — сделано немало. Впереди 25 лет активной карьеры. Это момент для переоценки всей стратегии.',
-    options: [
-      {
-        text: 'Агрессивно ускориться — максимальный рост',
-        sub: 'Повысить норму сбережений до 40%, взять больше риска',
-        impact: { capitalMult: 1.0, investRate: 0.03, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['+3% к ставке', 'агрессивный рост'],
-        type: 'good',
-        consequence: '40 лет — отличный момент для ускорения. Достаточно опыта, но ещё много времени для сложного процента.',
-        conType: 'good'
-      },
-      {
-        text: 'Сохранить темп — стабильная стратегия',
-        sub: 'Всё хорошо, зачем менять',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['стабильность', 'без изменений'],
-        type: 'neutral',
-        consequence: 'Стабильная стратегия — разумна. Но 40 лет — момент, когда можно и стоит поднять темп.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Переключиться на качество жизни — меньше работы',
-        sub: 'Снизить интенсивность, больше времени себе',
-        impact: { capitalMult: 1.0, salaryMult: 0.8, investRate: -0.01, bonusCapital: 0 },
-        impactLabel: ['доход -20%', 'баланс жизни'],
-        type: 'neutral',
-        consequence: 'Деньги — не единственная цель. Снижение темпа в 40 — осознанный выбор. Но финансово дороже.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Запустить ещё один бизнес / диверсифицировать',
-        sub: 'Параллельный проект, новый источник дохода',
-        impact: { capitalMult: 0.9, salaryMult: 1.0, investRate: 0.04, bonusCapital: 0 },
-        impactLabel: ['-10% капитал', '+новый источник'],
-        type: 'good',
-        consequence: '40 лет — идеальный возраст для запуска бизнеса: есть опыт, связи и капитал. Риск оправдан.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 12, age: 42,
-    title: 'Образование детей',
-    titleEm: null,
-    desc: 'Тебе 42. Ребёнку 8 лет — через 10 лет университет. Средний вуз за рубежом стоит 8-15M ₸ в год. Как готовишься?',
-    options: [
-      {
-        text: 'Открыть образовательный фонд — регулярные взносы',
-        sub: '100к/мес × 10 лет = 12M + рост',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: -12000000, salaryMult: 1.0 },
-        impactLabel: ['-12M за 10 лет', 'ребёнок обеспечен'],
-        type: 'good',
-        consequence: 'Систематическое накопление на образование — акт финансовой любви к ребёнку.',
-        conType: 'good'
-      },
-      {
-        text: 'Ставка на грант / стипендию',
-        sub: 'Вкладываешь в результаты ребёнка, не в фонд',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['риск не получить', 'экономия если гарант'],
-        type: 'neutral',
-        consequence: 'Гранты реальны, но нет гарантий. Иметь план Б — обязательно.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Ребёнок сам разберётся — кредит на обучение',
-        sub: 'Студенческий кредит, долг на старте жизни',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['долговая нагрузка', 'на ребёнке'],
-        type: 'bad',
-        consequence: 'Студенческий долг — тяжёлый старт. Ограничивает финансовые решения человека на годы.',
-        conType: 'bad'
-      },
-      {
-        text: 'Местный вуз — сэкономить и поддержать',
-        sub: 'Бюджет или недорогой платный, близко к дому',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: -3000000, salaryMult: 1.0 },
-        impactLabel: ['-3M за 4 года', 'разумная экономия'],
-        type: 'neutral',
-        consequence: 'Местный вуз — разумный выбор. Экономия существенная, качество зависит от специальности.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 13, age: 44,
-    title: 'Налоги и оптимизация',
-    titleEm: null,
-    desc: 'Тебе 44. Ты зарабатываешь прилично. Грамотная налоговая стратегия может сэкономить миллионы. Как относишься к этому вопросу?',
-    options: [
-      {
-        text: 'Нанять налогового консультанта, оптимизировать законно',
-        sub: 'Расходы 300к/год, экономия 2-5M/год',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: 2000000, salaryMult: 1.0 },
-        impactLabel: ['+2M/год экономия', 'легально'],
-        type: 'good',
-        consequence: 'Законная налоговая оптимизация — обязательный инструмент при высоком доходе. ROI колоссальный.',
-        conType: 'good'
-      },
-      {
-        text: 'Платить всё как есть, не разбираться',
-        sub: 'Переплачиваешь, но спишь спокойно',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['переплата налогов', 'простота'],
-        type: 'neutral',
-        consequence: 'Незнание налоговых льгот — добровольная переплата государству. Иногда это десятки миллионов за жизнь.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Серые схемы — "все так делают"',
-        sub: 'Краткосрочная экономия, долгосрочный риск',
-        impact: { capitalMult: 0.5, investRate: -0.02, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['риск уголовки', 'потеря всего'],
-        type: 'bad',
-        consequence: 'Налоговые преступления в Казахстане — реальные сроки. Экономия несопоставима с рисками.',
-        conType: 'bad'
-      },
-      {
-        text: 'ИП / ТОО — легальная структура бизнеса',
-        sub: 'Оформить ИП, снизить ставку с 10% до 3%',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 1000000, salaryMult: 1.0 },
-        impactLabel: ['+1M/год при среднем доходе', 'законно'],
-        type: 'good',
-        consequence: 'Оформление ИП — базовая оптимизация для самозанятых. Ставка 3% vs 10% — огромная разница.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 14, age: 46,
-    title: 'Здоровье = капитал',
-    titleEm: null,
-    desc: 'Тебе 46. Первые сигналы здоровья. Предупредительная медицина дорогая. Но болезни — ещё дороже. Как относишься к здоровью как инвестиции?',
-    options: [
-      {
-        text: 'Регулярные чек-апы, профилактика — 500к/год',
-        sub: 'Раннее выявление болезней, долгая продуктивность',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: -500000, salaryMult: 1.1 },
-        impactLabel: ['-500к/год', '+10% производительность'],
-        type: 'good',
-        consequence: 'Каждый тенге в профилактику возвращается ×10 в виде сохранённой работоспособности и избежанного лечения.',
-        conType: 'good'
-      },
-      {
-        text: 'Лечить по мере появления проблем',
-        sub: 'Реактивный подход — дороже в итоге',
-        impact: { capitalMult: 0.9, investRate: 0.0, bonusCapital: -2000000, salaryMult: 0.95 },
-        impactLabel: ['-2M на лечение', 'снижение продуктивности'],
-        type: 'neutral',
-        consequence: 'Лечение запущенной болезни в разы дороже профилактики. Классическая экономия с потерями.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Игнорировать — "некогда, бизнес важнее"',
-        sub: 'Серьёзный риск для продуктивности и капитала',
-        impact: { capitalMult: 0.7, investRate: -0.02, bonusCapital: -5000000, salaryMult: 0.8 },
-        impactLabel: ['-5M потенциальное лечение', 'риск инвалидности'],
-        type: 'bad',
-        consequence: 'Игнорирование здоровья — самый дорогой выбор. Потеря трудоспособности уничтожает весь финансовый план.',
-        conType: 'bad'
-      },
-      {
-        text: 'Спорт и правильное питание — инвестиция',
-        sub: 'Образ жизни как стратегия, 200к/год',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: -200000, salaryMult: 1.15 },
-        impactLabel: ['-200к/год', '+15% энергия/доход'],
-        type: 'good',
-        consequence: 'Здоровый образ жизни — самый высокий ROI среди всех инвестиций. Продуктивность, энергия, долголетие.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 15, age: 48,
-    title: 'Наследство и передача',
-    titleEm: null,
-    desc: 'Тебе 48. Пора думать о том, что будет с твоим капиталом. Завещание, передача активов, финансовое воспитание детей.',
-    options: [
-      {
-        text: 'Составить завещание и структурировать активы',
-        sub: 'Юрист, фонд, чёткий план передачи',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: -300000, salaryMult: 1.0 },
-        impactLabel: ['-300к юрист', 'защита семьи'],
-        type: 'good',
-        consequence: 'Без завещания государство решает, кому и что достанется. Это обязанность перед семьёй.',
-        conType: 'good'
-      },
-      {
-        text: 'Передать детям знания, а не деньги',
-        sub: 'Финансовое образование — лучшее наследство',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['дети умеют управлять', 'мультипликатор'],
-        type: 'good',
-        consequence: 'Финансово грамотный ребёнок сохранит и приумножит наследство. Безграмотный — растратит за годы.',
-        conType: 'good'
-      },
-      {
-        text: 'Потратить на себя — "живём один раз"',
-        sub: 'Максимальное качество жизни сейчас',
-        impact: { capitalMult: 0.75, investRate: -0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['-25% капитал', 'на удовольствия'],
-        type: 'neutral',
-        consequence: 'Нет ничего плохого в наслаждении плодами труда. Но баланс важен — полное потребление лишает выбора.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Благотворительный фонд / легаси',
-        sub: 'Имя живёт дольше денег',
-        impact: { capitalMult: 0.8, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['капитал идёт в мир', 'репутационный актив'],
-        type: 'neutral',
-        consequence: 'Благотворительность как стратегия — выбор людей, которые думают масштабно.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 16, age: 50,
-    title: 'Повышение нормы сбережений',
-    titleEm: null,
-    desc: 'Тебе 50. Дети выросли, ипотека выплачена. Денег стало больше. Критический момент — последние 15 лет компаундирования. Как используешь возможность?',
-    options: [
-      {
-        text: 'Поднять норму сбережений до 50%+',
-        sub: 'Агрессивное накопление на финальном отрезке',
-        impact: { capitalMult: 1.0, investRate: 0.04, bonusCapital: 5000000, salaryMult: 1.0 },
-        impactLabel: ['+5M за 5 лет', '+4% к ставке'],
-        type: 'good',
-        consequence: '50 лет — последний мощный момент для ускорения. Сложный процент за 15 лет может удвоить капитал.',
-        conType: 'good'
-      },
-      {
-        text: 'Поднять уровень жизни — вознаградить себя',
-        sub: 'Путешествия, роскошь, опыт',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: -0.02, bonusCapital: 0 },
-        impactLabel: ['расходы растут', 'жизнь лучше'],
-        type: 'neutral',
-        consequence: 'Качество жизни важно. Но в 50 лет каждый тенге, не вложенный, теряет потенциал сложного процента.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Инвестировать в бизнес детей / стартап',
-        sub: 'Капитал + опыт = мощная синергия',
-        impact: { capitalMult: 0.85, investRate: 0.03, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['-15% капитал', 'потенциал ×3'],
-        type: 'neutral',
-        consequence: 'Инвестиция в молодой бизнес с твоим менторством — интересный способ передать и капитал, и знания.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Переложить в консервативные инструменты',
-        sub: 'Облигации, депозиты — защита капитала',
-        impact: { capitalMult: 1.0, investRate: -0.03, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['защита', 'доходность ниже'],
-        type: 'neutral',
-        consequence: 'Переход к консерватизму в 50 — слишком рано. Ещё 15 лет работы капитала. Частичная защита разумна.',
-        conType: 'neutral'
-      }
-    ]
-  },
-  {
-    id: 17, age: 55,
-    title: 'Предпенсионная стратегия',
-    titleEm: null,
-    desc: 'Тебе 55. До пенсии 10 лет. Сейчас критически важно выстроить правильную стратегию — больше не будет возможности для ошибок.',
-    options: [
-      {
-        text: 'FIRE-стратегия — выйти на пенсию в 55',
-        sub: 'Капитал × 4% правило — пассивный доход',
-        impact: { capitalMult: 1.0, salaryMult: 0, investRate: 0.0, bonusCapital: 0 },
-        impactLabel: ['свобода сейчас', 'только пассивный доход'],
-        type: 'good',
-        consequence: 'FIRE работает если капитал × 4% ≥ расходам. Рано выйти на пенсию — мечта с математикой за собой.',
-        conType: 'good'
-      },
-      {
-        text: 'Работать до 65, но снизить интенсивность',
-        sub: '50% занятость, больше времени для жизни',
-        impact: { capitalMult: 1.0, salaryMult: 0.6, investRate: 0.01, bonusCapital: 0 },
-        impactLabel: ['баланс', 'доход 60%'],
-        type: 'good',
-        consequence: 'Постепенный выход — психологически комфортно и финансово оптимально. Работа на своих условиях.',
-        conType: 'good'
-      },
-      {
-        text: 'Максимально работать — "ещё 10 лет рывок"',
-        sub: 'Всё в работу, максимум накопления',
-        impact: { capitalMult: 1.0, salaryMult: 1.0, investRate: 0.03, bonusCapital: 0 },
-        impactLabel: ['максимум капитала', 'жертва временем'],
-        type: 'neutral',
-        consequence: 'Финансово выгодно, но качество жизни и здоровье могут пострадать. Время тоже актив.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Консультировать и менторить — монетизировать опыт',
-        sub: 'Опыт × 35 лет = уникальный актив',
-        impact: { capitalMult: 1.0, salaryMult: 0.8, investRate: 0.02, bonusCapital: 3000000 },
-        impactLabel: ['+3M консалтинг', 'передача знаний'],
-        type: 'good',
-        consequence: 'В 55 лет опыт — ценнейший актив. Консалтинг монетизирует его без физического изнашивания.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 18, age: 60,
-    title: 'Распределение пенсионного портфеля',
-    titleEm: null,
-    desc: 'Тебе 60. 5 лет до классической пенсии. Как структурируешь капитал для жизни после завершения активной карьеры?',
-    options: [
-      {
-        text: '60% акции / 40% облигации — классика',
-        sub: 'Баланс роста и стабильности',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['7-8% доходность', 'умеренный риск'],
-        type: 'good',
-        consequence: 'Классическая стратегия 60/40 проверена временем. Достаточно роста при управляемом риске.',
-        conType: 'good'
-      },
-      {
-        text: '100% консервативно — всё в облигации',
-        sub: 'Максимальная защита, низкая доходность',
-        impact: { capitalMult: 1.0, investRate: -0.03, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['4-5% доходность', 'инфляция съедает'],
-        type: 'bad',
-        consequence: 'Полный консерватизм в 60 — ошибка. Ещё 25-30 лет жизни, капитал должен расти.',
-        conType: 'bad'
-      },
-      {
-        text: 'Аннуитет — фиксированный доход на всю жизнь',
-        sub: 'Гарантированные выплаты, нет волатильности',
-        impact: { capitalMult: 0.8, investRate: 0.0, bonusCapital: 0, salaryMult: 1.0 },
-        impactLabel: ['стабильность', 'нет наследства'],
-        type: 'neutral',
-        consequence: 'Аннуитет — страховка от долгожительства. Теряешь гибкость и наследство, получаешь уверенность.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Недвижимость + рента — физические активы',
-        sub: 'Квартиры сдавать, рента покрывает расходы',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 2000000, salaryMult: 1.0 },
-        impactLabel: ['+2M/год рента', 'реальный актив'],
-        type: 'good',
-        consequence: 'Рентный доход — понятный и надёжный. Недвижимость защищает от инфляции и даёт стабильный кеш.',
-        conType: 'good'
-      }
-    ]
-  },
-  {
-    id: 19, age: 63,
-    title: 'Финальный выбор',
-    titleEm: null,
-    desc: 'Тебе 63. Ты у финишной черты активной жизни. Один последний стратегический выбор — как хочешь провести оставшиеся годы?',
-    options: [
-      {
-        text: 'Финансовая независимость — жить на проценты',
-        sub: 'Капитал работает, ты отдыхаешь',
-        impact: { capitalMult: 1.0, investRate: 0.02, bonusCapital: 0, salaryMult: 0 },
-        impactLabel: ['свобода', 'капитал растёт'],
-        type: 'good',
-        consequence: 'Идеальный финал финансово грамотной жизни — деньги работают на тебя, а не наоборот.',
-        conType: 'good'
-      },
-      {
-        text: 'Передать бизнес / знания преемнику',
-        sub: 'Легаси, менторство, смысл',
-        impact: { capitalMult: 1.0, investRate: 0.01, bonusCapital: 5000000, salaryMult: 0 },
-        impactLabel: ['+5M от продажи/передачи', 'легаси'],
-        type: 'good',
-        consequence: 'Передача дел с умом — и финансово выгодна, и даёт смысл. Опыт монетизируется последний раз.',
-        conType: 'good'
-      },
-      {
-        text: 'Потратить на путешествия и опыт',
-        sub: '"Здоровье позволяет — надо использовать"',
-        impact: { capitalMult: 0.85, investRate: 0.0, bonusCapital: 0, salaryMult: 0 },
-        impactLabel: ['-15% на жизнь', 'опыт бесценен'],
-        type: 'neutral',
-        consequence: 'В 63 здоровье ещё есть. Потратить на впечатления — человеческий выбор, не финансовый.',
-        conType: 'neutral'
-      },
-      {
-        text: 'Продолжить работать — "без дела скучно"',
-        sub: 'Работа как смысл, не необходимость',
-        impact: { capitalMult: 1.0, investRate: 0.0, bonusCapital: 3000000, salaryMult: 0.4 },
-        impactLabel: ['+3M дополнительно', 'смысл и структура'],
-        type: 'neutral',
-        consequence: 'Работа по выбору — не по необходимости — один из секретов долголетия и удовлетворённости.',
-        conType: 'neutral'
-      }
-    ]
-  }
-];
-
-// ═══════════════════════════════════════════════════════
-// СОСТОЯНИЕ
-// ═══════════════════════════════════════════════════════
-let S = {
-  name: 'Игрок',
-  startCapital: 500000,
-  finIQ: 5,
-  salary: 0,
-  capital: 0,
-  investRate: 0.10,
-  risk: 'medium',
-  step: 0,
-  history: [],
-  capitalHistory: [] // {age, capital}
+const firebaseConfig = {
+  apiKey:            "AIzaSyBZR2uZfopaEXgFxgQswAzCYT03ZG84kH0",
+  authDomain:        "wish-board-69411.firebaseapp.com",
+  projectId:         "wish-board-69411",
+  storageBucket:     "wish-board-69411.firebasestorage.app",
+  messagingSenderId: "327737368284",
+  appId:             "1:327737368284:web:7d239ef2b40aa48f27de19"
 };
 
-// ═══════════════════════════════════════════════════════
-// УТИЛИТЫ
-// ═══════════════════════════════════════════════════════
-function fmt(n, short) {
-  if (short) {
-    if (Math.abs(n) >= 1e9) return (n/1e9).toFixed(1) + ' млрд ₸';
-    if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1) + 'M ₸';
-    if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(0) + 'к ₸';
-    return n.toFixed(0) + ' ₸';
+let db, storage, configured = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('ВСТАВЬ')) {
+    db = firebase.firestore();
+    storage = firebase.storage();
+    configured = true;
   }
-  const sign = n < 0 ? '−' : '';
-  return sign + Math.abs(Math.round(n)).toLocaleString('ru-RU') + ' ₸';
+} catch(e) { console.warn('Firebase init error:', e); }
+
+if (!configured) {
+  document.getElementById('configBanner').classList.add('show');
+  loadDemoData();
 }
 
-function updSl(slId, valId, isScore) {
-  const v = +document.getElementById(slId).value;
-  document.getElementById(valId).textContent = isScore ? v + ' / 10' : v.toLocaleString('ru-RU') + ' ₸';
+const catColors = {
+  'вещи':   { bg:'#fef3e8', text:'#c8853a' },
+  'услуги': { bg:'#e8f0fb', text:'#3a6b9c' },
+  'хобби':  { bg:'#e8f6ef', text:'#3a7d5c' },
+  'другое': { bg:'#f3e8fb', text:'#7c3aad' },
+};
+const avatarColors = ['#c8853a','#3a6b9c','#3a7d5c','#7c3aad','#c03a6b','#3a7c9c','#9c6b3a','#3a9c7c'];
+
+function getAvatarColor(name) {
+  let h = 0;
+  for(let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) & 0xffff;
+  return avatarColors[h % avatarColors.length];
+}
+function initials(name) { return name.trim().slice(0,2).toUpperCase(); }
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = (Date.now() - (ts.toMillis ? ts.toMillis() : ts)) / 1000;
+  if (diff < 60) return 'только что';
+  if (diff < 3600) return Math.floor(diff/60) + ' мин назад';
+  if (diff < 86400) return Math.floor(diff/3600) + ' ч назад';
+  return Math.floor(diff/86400) + ' дн назад';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatPrice(p) {
+  if (!p && p !== 0) return '—';
+  return Number(p).toLocaleString('ru-RU') + ' ₸';
 }
 
-// ═══════════════════════════════════════════════════════
-// ИНИЦИАЛИЗАЦИЯ TIMELINE
-// ═══════════════════════════════════════════════════════
-function buildTimeline() {
-  const tl = document.getElementById('timeline');
-  tl.innerHTML = '';
-  DECISIONS.forEach((d, i) => {
-    const seg = document.createElement('div');
-    seg.className = 'tl-seg';
-    seg.dataset.age = d.age;
-    seg.id = 'tl' + i;
-    tl.appendChild(seg);
-  });
+let allListings = [], currentFilter = 'all', currentListingId = null;
+let unsubComments = null, selectedImageFile = null;
+
+function loadListings() {
+  if (!configured) return;
+  db.collection('listings').orderBy('createdAt','desc').limit(100)
+    .onSnapshot(snap => {
+      allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('listingCount').textContent = allListings.length;
+      renderListings();
+    }, err => {
+      console.error(err);
+      showToast('Ошибка загрузки. Проверь Firebase.', 'err');
+    });
 }
 
-function updateTimeline(step) {
-  DECISIONS.forEach((_, i) => {
-    const el = document.getElementById('tl' + i);
-    if (!el) return;
-    el.className = 'tl-seg' + (i < step ? ' done' : i === step ? ' active' : '');
-  });
-  const badge = document.getElementById('ageBadge');
-  if (step < DECISIONS.length) {
-    badge.textContent = DECISIONS[step].age + ' лет';
-    badge.classList.add('visible');
+function renderListings() {
+  const grid = document.getElementById('listingsGrid');
+  const filtered = currentFilter === 'all' ? allListings : allListings.filter(l => l.category === currentFilter);
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="emoji">🛒</div><h3>Объявлений пока нет</h3><p>Будь первым — разместить объявление легко!</p></div>`;
+    return;
   }
-}
-
-// ═══════════════════════════════════════════════════════
-// ГЕНЕРАЦИЯ ЭКРАНОВ РЕШЕНИЙ
-// ═══════════════════════════════════════════════════════
-function buildDecisionScreens() {
-  const container = document.getElementById('decScreens');
-  container.innerHTML = '';
-  DECISIONS.forEach((dec, i) => {
-    const div = document.createElement('div');
-    div.className = 'screen';
-    div.id = 'sd' + i;
-
-    const optionsHTML = dec.options.map((opt, oi) => {
-      const impactSpans = opt.impactLabel.map(l => {
-        const cls = l.startsWith('+') ? 'up' : l.startsWith('-') ? 'dn' : 'nu';
-        return `<span class="${cls}">${l}</span>`;
-      }).join('<br>');
-      return `
-        <div class="choice" onclick="makeDecision(${i}, ${oi})">
-          <div>
-            <div class="choice-main">${opt.text}</div>
-            <div class="choice-sub">${opt.sub}</div>
+  grid.innerHTML = filtered.map((l, i) => {
+    const c = catColors[l.category] || catColors['другое'];
+    const color = getAvatarColor(l.author || 'А');
+    const imageHtml = l.imageUrl
+      ? `<div class="card-image"><img src="${escHtml(l.imageUrl)}" alt="${escHtml(l.title)}" loading="lazy"></div>`
+      : `<div class="card-image"><div class="card-image-placeholder"><svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span>Нет фото</span></div></div>`;
+    return `<div class="card" onclick="openDetail('${l.id}')" style="animation-delay:${i*0.04}s">
+      ${imageHtml}
+      <div class="card-body">
+        <span class="cat-tag" style="background:${c.bg};color:${c.text};">${l.category}</span>
+        <div class="card-top">
+          <div class="card-title">${escHtml(l.title)}</div>
+          <div class="card-price">${formatPrice(l.price)}</div>
+        </div>
+        <div class="card-desc">${escHtml(l.description || '')}</div>
+        <div class="card-footer">
+          <div class="card-author">
+            <div class="avatar" style="background:${color}">${initials(l.author||'?')}</div>
+            <div class="author-name">${escHtml(l.author||'Аноним')}</div>
           </div>
-          <div class="choice-impact">${impactSpans}</div>
+          <div class="card-meta">
+            <div class="comment-count">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              ${l.commentCount || 0}
+            </div>
+            <span>${timeAgo(l.createdAt)}</span>
+          </div>
         </div>
-      `;
-    }).join('');
-
-    div.innerHTML = `
-      <div class="card">
-        <div class="card-tag">Возраст ${dec.age} лет · Развилка ${i+1} из ${DECISIONS.length}</div>
-        <h2>${dec.title}</h2>
-        <p class="card-desc">${dec.desc}</p>
-        <div class="stat-row" id="statrow_${i}"></div>
-        <div class="choices">${optionsHTML}</div>
-        <div class="consequence" id="con_${i}"></div>
       </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function updateStatRow(stepIdx) {
-  const el = document.getElementById('statrow_' + stepIdx);
-  if (!el) return;
-  el.innerHTML = `
-    <div class="stat">
-      <div class="stat-label">Капитал</div>
-      <div class="stat-value ${S.capital < 0 ? 'red' : ''}">${fmt(S.capital, true)}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Доход / мес</div>
-      <div class="stat-value">${fmt(S.salary, true)}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Ставка инвест.</div>
-      <div class="stat-value">${(S.investRate * 100).toFixed(1)}% / год</div>
-    </div>
-  `;
-}
-
-// ═══════════════════════════════════════════════════════
-// ЛОГИКА НАКОПЛЕНИЯ МЕЖДУ ЭТАПАМИ
-// ═══════════════════════════════════════════════════════
-function simulateYears(fromAge, toAge) {
-  const years = toAge - fromAge;
-  if (years <= 0) return;
-  // Зарплата → накопления (норма сбережений зависит от finIQ)
-  const savingsRate = 0.15 + (S.finIQ / 10) * 0.25; // 15-40%
-  for (let y = 0; y < years; y++) {
-    const monthlySavings = S.salary * savingsRate;
-    const yearSavings = monthlySavings * 12;
-    S.capital += yearSavings;
-    S.capital *= (1 + S.investRate);
-    const age = fromAge + y + 1;
-    S.capitalHistory.push({ age, capital: S.capital });
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// ПРИНЯТИЕ РЕШЕНИЯ
-// ═══════════════════════════════════════════════════════
-function makeDecision(decIdx, optIdx) {
-  const dec = DECISIONS[decIdx];
-  const opt = dec.options[optIdx];
-
-  // Показать последствие
-  const con = document.getElementById('con_' + decIdx);
-  con.textContent = opt.consequence;
-  con.className = 'consequence show ' + (opt.conType || 'neutral');
-
-  // Заблокировать кнопки
-  const btns = document.querySelectorAll('#sd' + decIdx + ' .choice');
-  btns.forEach((b, i) => {
-    b.style.pointerEvents = 'none';
-    if (i !== optIdx) b.style.opacity = '0.25';
-    else {
-      b.style.borderColor = opt.type === 'good' ? 'var(--green2)' : opt.type === 'bad' ? 'var(--red2)' : 'var(--amber)';
-      b.style.background = opt.type === 'good' ? 'rgba(5,150,105,.06)' : opt.type === 'bad' ? 'rgba(220,38,38,.06)' : 'rgba(217,119,6,.06)';
-    }
-  });
-
-  // Применить эффекты
-  const imp = opt.impact;
-  if (imp.salary !== undefined) S.salary = imp.salary;
-  if (imp.salaryMult !== undefined && imp.salaryMult > 0) S.salary *= imp.salaryMult;
-  else if (imp.salaryMult === 0) S.salary = 0;
-  if (imp.capitalMult !== undefined) S.capital *= imp.capitalMult;
-  if (imp.bonusCapital !== undefined) S.capital += imp.bonusCapital;
-  if (imp.investRate !== undefined) S.investRate = Math.max(0.04, S.investRate + imp.investRate);
-  if (imp.risk !== undefined) S.risk = imp.risk;
-
-  // Сохранить историю
-  S.history.push({
-    age: dec.age,
-    title: dec.title,
-    choice: opt.text,
-    type: opt.type,
-    cost: imp.bonusCapital || 0
-  });
-
-  // Симулировать годы до следующей развилки
-  const nextAge = decIdx + 1 < DECISIONS.length ? DECISIONS[decIdx + 1].age : 65;
-  simulateYears(dec.age, nextAge);
-
-  // Перейти дальше через задержку
-  setTimeout(() => {
-    S.step = decIdx + 1;
-    if (S.step >= DECISIONS.length) {
-      showResult();
-    } else {
-      showScreen('sd' + S.step);
-      updateStatRow(S.step);
-      updateTimeline(S.step);
-    }
-  }, 1200);
-}
-
-// ═══════════════════════════════════════════════════════
-// НАВИГАЦИЯ
-// ═══════════════════════════════════════════════════════
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ═══════════════════════════════════════════════════════
-// СТАРТ
-// ═══════════════════════════════════════════════════════
-function startSim() {
-  S.name = document.getElementById('inp_name').value.trim() || 'Игрок';
-  S.startCapital = +document.getElementById('sl_start').value;
-  S.finIQ = +document.getElementById('sl_iq').value;
-  S.capital = S.startCapital;
-  S.salary = 0;
-  S.investRate = 0.08 + (S.finIQ / 10) * 0.07;
-  S.history = [];
-  S.capitalHistory = [{ age: 18, capital: S.capital }];
-  S.step = 0;
-
-  buildDecisionScreens();
-  updateStatRow(0);
-  updateTimeline(0);
-  showScreen('sd0');
-}
-
-// ═══════════════════════════════════════════════════════
-// РЕЗУЛЬТАТ
-// ═══════════════════════════════════════════════════════
-function showResult() {
-  document.getElementById('ageBadge').textContent = '65 лет';
-  showScreen('sResult');
-  renderResult();
-}
-
-function renderResult() {
-  const goodCount = S.history.filter(h => h.type === 'good').length;
-  const badCount = S.history.filter(h => h.type === 'bad').length;
-  const score = Math.round((goodCount / S.history.length) * 100);
-  const finalCapital = S.capital;
-  const passiveIncome = finalCapital * 0.04 / 12;
-  const fireAge = calcFireAge();
-  const altCapital = calcAlternative();
-  const savingsRate = 0.15 + (S.finIQ / 10) * 0.25;
-
-  // Вердикт
-  let verdictTitle, verdictSub;
-  if (score >= 75) {
-    verdictTitle = 'Финансовый стратег';
-    verdictSub = `${S.name}, ты принимал <em>системные, взвешенные решения</em> на протяжении всей жизни. Твой капитал к 65 годам составляет ${fmt(finalCapital, true)} — это результат дисциплины, знаний и долгосрочного мышления. Пассивный доход ${fmt(passiveIncome, true)}/мес покрывает любые расходы.`;
-  } else if (score >= 50) {
-    verdictTitle = 'Умеренный путь';
-    verdictSub = `${S.name}, ты сделал ряд <em>хороших решений</em>, но несколько ошибок существенно замедлили рост капитала. Финал достойный — ${fmt(finalCapital, true)}, но альтернативный путь дал бы значительно больше.`;
-  } else {
-    verdictTitle = 'Путь с препятствиями';
-    verdictSub = `${S.name}, эмоциональные и импульсивные решения стоили дорого. Капитал ${fmt(finalCapital, true)} — это результат. <em>Главный урок</em>: финансовые ошибки в молодости имеют экспоненциальную цену из-за упущенного сложного процента.`;
-  }
-
-  document.getElementById('rTitle').innerHTML = `<em>${verdictTitle}</em>`;
-  document.getElementById('rSub').innerHTML = verdictSub;
-
-  // Метрики
-  const metrics = [
-    { num: fmt(finalCapital, true), lbl: 'Итоговый капитал', cls: finalCapital > 50000000 ? 'g' : finalCapital > 15000000 ? 'a' : 'r' },
-    { num: fmt(passiveIncome, true) + '/мес', lbl: 'Пассивный доход', cls: passiveIncome > 500000 ? 'g' : passiveIncome > 200000 ? 'a' : 'r' },
-    { num: fireAge ? fireAge + ' лет' : 'Не достигнут', lbl: 'Точка FIRE', cls: fireAge && fireAge < 55 ? 'g' : fireAge ? 'a' : 'r' },
-    { num: score + '%', lbl: 'Качество решений', cls: score >= 70 ? 'g' : score >= 50 ? 'a' : 'r' },
-    { num: goodCount + ' / ' + S.history.length, lbl: 'Умных решений', cls: 'a' },
-    { num: (S.investRate * 100).toFixed(1) + '%/год', lbl: 'Ставка инвест.', cls: S.investRate >= 0.12 ? 'g' : S.investRate >= 0.09 ? 'a' : 'r' },
-    { num: fmt(S.salary, true) + '/мес', lbl: 'Финальный доход', cls: S.salary > 800000 ? 'g' : S.salary > 300000 ? 'a' : 'r' },
-    { num: Math.round(savingsRate * 100) + '%', lbl: 'Норма сбережений', cls: savingsRate >= 0.35 ? 'g' : savingsRate >= 0.25 ? 'a' : 'r' },
-    { num: fmt(altCapital, true), lbl: 'Альтернативный путь', cls: 'b' },
-  ];
-
-  document.getElementById('metricsGrid').innerHTML = metrics.map(m =>
-    `<div class="metric"><div class="metric-num ${m.cls}">${m.num}</div><div class="metric-lbl">${m.lbl}</div></div>`
-  ).join('');
-
-  // График
-  drawChart(finalCapital, altCapital);
-
-  // Анализ
-  const totalBonus = S.history.reduce((s, h) => s + (h.cost || 0), 0);
-  const goodImpact = S.history.filter(h => h.type === 'good').length * 8;
-  const badImpact = S.history.filter(h => h.type === 'bad').length;
-
-  document.getElementById('analysisGrid').innerHTML = `
-    <div class="ab">
-      <div class="ab-title">Финансовые показатели</div>
-      <div class="ab-line"><span>Стартовый капитал</span><span class="val">${fmt(S.startCapital, true)}</span></div>
-      <div class="ab-line"><span>Итоговый капитал</span><span class="val ${finalCapital > S.startCapital ? 'g' : 'r'}">${fmt(finalCapital, true)}</span></div>
-      <div class="ab-line"><span>Рост капитала</span><span class="val g">×${finalCapital > 0 && S.startCapital > 0 ? (finalCapital / S.startCapital).toFixed(0) : '—'}</span></div>
-      <div class="ab-line"><span>Годовой пассивный доход</span><span class="val">${fmt(passiveIncome * 12, true)}</span></div>
-      <div class="ab-line"><span>Ставка доходности</span><span class="val">${(S.investRate * 100).toFixed(1)}%</span></div>
-    </div>
-    <div class="ab">
-      <div class="ab-title">Качество решений</div>
-      <div class="ab-line"><span>Всего развилок</span><span class="val">${S.history.length}</span></div>
-      <div class="ab-line"><span>Умных решений</span><span class="val g">${goodCount}</span></div>
-      <div class="ab-line"><span>Ошибочных решений</span><span class="val r">${badCount}</span></div>
-      <div class="ab-line"><span>Нейтральных</span><span class="val">${S.history.length - goodCount - badCount}</span></div>
-      <div class="ab-line"><span>Финансовый IQ старт</span><span class="val">${S.finIQ}/10</span></div>
-    </div>
-  `;
-
-  // Сравнение
-  const maxCapital = Math.max(finalCapital, altCapital);
-  const yourPct = maxCapital > 0 ? Math.round((finalCapital / maxCapital) * 100) : 0;
-  const altPct = maxCapital > 0 ? Math.round((altCapital / maxCapital) * 100) : 0;
-  const diff = finalCapital - altCapital;
-
-  document.getElementById('compBlock').innerHTML = `
-    <div style="margin-bottom:20px">
-      <div class="comp-bar-wrap">
-        <div class="comp-label"><span>Твой путь</span><span style="color:var(--amber2)">${fmt(finalCapital, true)}</span></div>
-        <div class="comp-track"><div class="comp-fill your" style="width:${yourPct}%"></div></div>
-      </div>
-      <div class="comp-bar-wrap" style="margin-top:12px">
-        <div class="comp-label"><span>Оптимальный путь</span><span style="color:var(--blue2)">${fmt(altCapital, true)}</span></div>
-        <div class="comp-track"><div class="comp-fill alt" style="width:${altPct}%"></div></div>
-      </div>
-    </div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.7">
-      ${diff >= 0
-        ? `✅ Ты <strong style="color:var(--green2)">превзошёл</strong> оптимальный путь на <strong style="color:var(--green2)">${fmt(diff, true)}</strong>. Исключительный результат.`
-        : `📊 Разница с оптимальным путём: <strong style="color:var(--red2)">${fmt(Math.abs(diff), true)}</strong>. Это цена нескольких ключевых решений, усиленная сложным процентом за десятилетия.`
-      }
-    </div>
-  `;
-
-  // История решений
-  document.getElementById('decLog').innerHTML = S.history.map(h => {
-    const col = h.type === 'good' ? 'var(--green2)' : h.type === 'bad' ? 'var(--red2)' : 'var(--amber2)';
-    const costStr = h.cost !== 0 ? (h.cost > 0 ? '+' : '−') + fmt(Math.abs(h.cost), true) : '—';
-    const costCol = h.cost > 0 ? 'g' : h.cost < 0 ? 'r' : '';
-    return `
-      <div class="dec-item">
-        <div class="dec-age">${h.age}</div>
-        <div class="dec-text">
-          <div class="dec-name">${h.title}</div>
-          <div class="dec-choice" style="color:${col}">${h.choice}</div>
-        </div>
-        <div class="dec-delta" style="color:${h.cost > 0 ? 'var(--green2)' : h.cost < 0 ? 'var(--red2)' : 'var(--text3)'}">${costStr}</div>
-      </div>
-    `;
+    </div>`;
   }).join('');
-
-  // Вердикт текст
-  document.getElementById('verdictText').innerHTML = verdictSub;
 }
 
-// ═══════════════════════════════════════════════════════
-// РАСЧЁТЫ
-// ═══════════════════════════════════════════════════════
-function calcFireAge() {
-  for (const pt of S.capitalHistory) {
-    const monthlyPassive = pt.capital * 0.04 / 12;
-    if (monthlyPassive >= 300000 && pt.age <= 65) return pt.age;
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.cat;
+  renderListings();
+});
+
+/* IMAGE UPLOAD */
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Файл слишком большой (макс. 5 МБ)', 'err'); return; }
+  selectedImageFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewWrap').classList.add('has-image');
+    document.getElementById('uploadArea').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(e) {
+  e.stopPropagation();
+  selectedImageFile = null;
+  document.getElementById('previewImg').src = '';
+  document.getElementById('previewWrap').classList.remove('has-image');
+  document.getElementById('uploadArea').style.display = '';
+  document.getElementById('imageFile').value = '';
+}
+
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleImageSelect({ target: { files: [file] } });
+});
+
+async function uploadImage(file) {
+  if (!storage) return null;
+  const ext = file.name.split('.').pop();
+  const path = `listings/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressWrap = document.getElementById('uploadProgress');
+  progressWrap.classList.add('show');
+  return new Promise((resolve, reject) => {
+    const task = storage.ref(path).put(file);
+    task.on('state_changed',
+      snap => { progressBar.style.width = (snap.bytesTransferred / snap.totalBytes * 100) + '%'; },
+      err => { progressWrap.classList.remove('show'); reject(err); },
+      async () => { progressWrap.classList.remove('show'); resolve(await task.snapshot.ref.getDownloadURL()); }
+    );
+  });
+}
+
+/* POST */
+function openPostModal() { document.getElementById('postOverlay').classList.add('open'); }
+
+async function submitListing() {
+  const name  = document.getElementById('authorName').value.trim();
+  const title = document.getElementById('listingTitle').value.trim();
+  const cat   = document.getElementById('listingCat').value;
+  const price = document.getElementById('listingPrice').value;
+  const desc  = document.getElementById('listingDesc').value.trim();
+  const cont  = document.getElementById('listingContact').value.trim();
+
+  if (!name || !title || !price) { showToast('Заполни имя, заголовок и цену!', 'err'); return; }
+  if (isNaN(price) || Number(price) < 0) { showToast('Введи корректную цену', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Публикую...';
+
+  try {
+    let imageUrl = null;
+    if (selectedImageFile) { btn.textContent = 'Загружаю фото...'; imageUrl = await uploadImage(selectedImageFile); }
+    await db.collection('listings').add({
+      author: name, title, category: cat, price: Number(price),
+      description: desc, contact: cont, imageUrl: imageUrl || null,
+      commentCount: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('postOverlay'); clearPostForm();
+    showToast('✅ Объявление опубликовано!', 'ok');
+  } catch(e) { console.error(e); showToast('Ошибка. Попробуй ещё раз.', 'err'); }
+  btn.disabled = false; btn.textContent = 'Опубликовать →';
+}
+
+function clearPostForm() {
+  ['authorName','listingTitle','listingPrice','listingDesc','listingContact'].forEach(id => document.getElementById(id).value = '');
+  removeImage({ stopPropagation: () => {} }); selectedImageFile = null;
+}
+
+/* DETAIL */
+function openDetail(id) {
+  const l = allListings.find(x => x.id === id);
+  if (!l) return;
+  currentListingId = id;
+  const c = catColors[l.category] || catColors['другое'];
+  const color = getAvatarColor(l.author || 'А');
+  const detailImage = document.getElementById('detailImage');
+  if (l.imageUrl) {
+    detailImage.innerHTML = `<img src="${escHtml(l.imageUrl)}" alt="${escHtml(l.title)}">`;
+  } else {
+    detailImage.innerHTML = `<div class="detail-image-placeholder"><svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
   }
-  return null;
+  document.getElementById('detailCatTag').innerHTML = `<span class="cat-tag" style="background:${c.bg};color:${c.text};">${l.category}</span>`;
+  document.getElementById('detailTitle').textContent = l.title;
+  document.getElementById('detailPrice').textContent = formatPrice(l.price);
+  document.getElementById('detailDesc').textContent = l.description || '(описание не указано)';
+  document.getElementById('detailAuthor').textContent = l.author || 'Аноним';
+  const av = document.getElementById('detailAvatar');
+  av.textContent = initials(l.author||'?'); av.style.background = color;
+  document.getElementById('detailContact').textContent = l.contact ? '📞 ' + l.contact : '';
+  document.getElementById('detailOverlay').classList.add('open');
+  loadComments(id);
 }
 
-function calcAlternative() {
-  // Оптимальный путь: лучшие решения на каждом этапе
-  let cap = S.startCapital;
-  let sal = 420000;
-  let rate = 0.13;
-  const savRate = 0.15 + (Math.min(10, S.finIQ + 3) / 10) * 0.25;
-  for (let age = 18; age < 65; age++) {
-    cap += sal * savRate * 12;
-    cap *= (1 + rate);
-    if (age === 26) sal *= 2.5;
-    if (age === 30) sal *= 1.5;
-    if (age === 36) cap *= 1.04;
-    if (age === 50) cap += 5000000;
-  }
-  return Math.max(0, cap);
+/* COMMENTS */
+function loadComments(listingId) {
+  if (unsubComments) unsubComments();
+  const list = document.getElementById('commentList');
+  list.innerHTML = '<div style="display:flex;gap:6px;justify-content:center;padding:20px;"><span style="width:6px;height:6px;background:var(--accent);border-radius:50%;animation:bounce 1.2s infinite"></span><span style="width:6px;height:6px;background:var(--accent);border-radius:50%;animation:bounce 1.2s .2s infinite"></span><span style="width:6px;height:6px;background:var(--accent);border-radius:50%;animation:bounce 1.2s .4s infinite"></span></div>';
+  unsubComments = db.collection('listings').doc(listingId).collection('comments')
+    .orderBy('createdAt','asc').limit(50)
+    .onSnapshot(snap => {
+      const comments = snap.docs.map(d => d.data());
+      document.getElementById('commentCountLabel').textContent = comments.length;
+      if (comments.length === 0) { list.innerHTML = '<div class="no-comments">Пока нет комментариев. Будь первым!</div>'; return; }
+      list.innerHTML = comments.map(c => {
+        const color = getAvatarColor(c.author || 'А');
+        return `<div class="comment-item">
+          <div class="avatar" style="background:${color};width:30px;height:30px;font-size:11px;">${initials(c.author||'?')}</div>
+          <div class="comment-bubble">
+            <div class="c-name">${escHtml(c.author||'Аноним')}</div>
+            <div class="c-text">${escHtml(c.text)}</div>
+            <div class="c-time">${timeAgo(c.createdAt)}</div>
+          </div>
+        </div>`;
+      }).join('');
+      list.scrollTop = list.scrollHeight;
+    });
 }
 
-// ═══════════════════════════════════════════════════════
-// ГРАФИК
-// ═══════════════════════════════════════════════════════
-function drawChart(finalCapital, altCapital) {
-  const canvas = document.getElementById('capitalChart');
-  const ctx = canvas.getContext('2d');
-
-  // Размеры
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.parentElement.clientWidth - 48;
-  const H = 220;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.scale(dpr, dpr);
-
-  const PAD = { t: 10, r: 10, b: 30, l: 60 };
-  const chartW = W - PAD.l - PAD.r;
-  const chartH = H - PAD.t - PAD.b;
-
-  // Данные
-  const pts = S.capitalHistory;
-  const maxVal = Math.max(...pts.map(p => p.capital), altCapital) * 1.05;
-  const minAge = 18, maxAge = 65;
-
-  // Альтернативный путь
-  const altPts = [];
-  let aCap = S.startCapital;
-  let aSal = 420000;
-  for (let age = 18; age <= 65; age++) {
-    altPts.push({ age, capital: aCap });
-    aCap += aSal * 0.35 * 12;
-    aCap *= 1.13;
-    if (age === 26) aSal *= 2.5;
-    if (age === 30) aSal *= 1.5;
-  }
-
-  function xPos(age) { return PAD.l + ((age - minAge) / (maxAge - minAge)) * chartW; }
-  function yPos(val) { return PAD.t + chartH - (val / maxVal) * chartH; }
-
-  // Grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = PAD.t + (chartH / 4) * i;
-    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + chartW, y); ctx.stroke();
-    // Y labels
-    const val = maxVal * (1 - i / 4);
-    ctx.fillStyle = 'rgba(168,162,158,0.6)';
-    ctx.font = `9px 'JetBrains Mono', monospace`;
-    ctx.textAlign = 'right';
-    ctx.fillText(fmt(val, true), PAD.l - 6, y + 3);
-  }
-
-  // X labels
-  [18, 25, 30, 40, 50, 60, 65].forEach(age => {
-    const x = xPos(age);
-    ctx.fillStyle = 'rgba(168,162,158,0.6)';
-    ctx.font = `9px 'JetBrains Mono', monospace`;
-    ctx.textAlign = 'center';
-    ctx.fillText(age, x, H - 8);
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    ctx.beginPath(); ctx.moveTo(x, PAD.t); ctx.lineTo(x, PAD.t + chartH); ctx.stroke();
-  });
-
-  // Альтернативный путь
-  ctx.beginPath();
-  ctx.strokeStyle = 'rgba(59,130,246,0.5)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 4]);
-  altPts.forEach((p, i) => {
-    const x = xPos(p.age), y = yPos(p.capital);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Gradient fill — твой путь
-  const grad = ctx.createLinearGradient(0, PAD.t, 0, PAD.t + chartH);
-  grad.addColorStop(0, 'rgba(245,158,11,0.25)');
-  grad.addColorStop(1, 'rgba(245,158,11,0)');
-
-  ctx.beginPath();
-  pts.forEach((p, i) => {
-    const x = xPos(p.age), y = yPos(p.capital);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.lineTo(xPos(pts[pts.length-1].age), PAD.t + chartH);
-  ctx.lineTo(xPos(pts[0].age), PAD.t + chartH);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Твой путь — линия
-  ctx.beginPath();
-  ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 2;
-  pts.forEach((p, i) => {
-    const x = xPos(p.age), y = yPos(p.capital);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // Точки решений
-  S.history.forEach(h => {
-    const pt = pts.find(p => p.age >= h.age);
-    if (!pt) return;
-    const x = xPos(h.age);
-    const y = yPos(pt.capital);
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = h.type === 'good' ? '#10b981' : h.type === 'bad' ? '#ef4444' : '#f59e0b';
-    ctx.fill();
-  });
+async function sendComment() {
+  const name = document.getElementById('commentName').value.trim();
+  const text = document.getElementById('commentText').value.trim();
+  if (!name || !text) { showToast('Введи имя и комментарий', 'err'); return; }
+  if (!currentListingId) return;
+  const btn = document.getElementById('sendCommentBtn'); btn.disabled = true;
+  try {
+    const batch = db.batch();
+    const commentRef = db.collection('listings').doc(currentListingId).collection('comments').doc();
+    batch.set(commentRef, { author: name, text, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.update(db.collection('listings').doc(currentListingId), { commentCount: firebase.firestore.FieldValue.increment(1) });
+    await batch.commit();
+    document.getElementById('commentText').value = '';
+  } catch(e) { console.error(e); showToast('Не удалось отправить', 'err'); }
+  btn.disabled = false;
 }
 
-// ═══════════════════════════════════════════════════════
-// РЕСТАРТ
-// ═══════════════════════════════════════════════════════
-function restartSim() {
-  S = { name:'Игрок', startCapital:500000, finIQ:5, salary:0, capital:0, investRate:0.10, risk:'medium', step:0, history:[], capitalHistory:[] };
-  document.getElementById('inp_name').value = '';
-  document.getElementById('sl_start').value = 500000;
-  document.getElementById('sl_iq').value = 5;
-  updSl('sl_start','sv_start');
-  updSl('sl_iq','sv_iq',true);
-  document.getElementById('ageBadge').classList.remove('visible');
-  updateTimeline(-1);
-  showScreen('s0');
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'detailOverlay' && unsubComments) { unsubComments(); unsubComments = null; }
+}
+function closeOnBg(e, id) { if (e.target.id === id) closeModal(id); }
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.className = 'toast', 3000);
 }
 
-// ═══════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════
-buildTimeline();
-updSl('sl_start','sv_start');
-updSl('sl_iq','sv_iq',true);
+function loadDemoData() {
+  allListings = [
+    { id:'d1', author:'Алия', title:'Велосипед горный', category:'вещи', price:25000, description:'Продаю горный велосипед, куплен 2 года назад. Состояние хорошее. Все 21 скорость работают.', contact:'WhatsApp: +7 701 XXX XX XX', commentCount:2, imageUrl:null, createdAt:null },
+    { id:'d2', author:'Данияр', title:'Рисую портреты на заказ', category:'услуги', price:2000, description:'Рисую цифровые портреты в стиле аниме или реализм. Срок — 2-3 дня.', contact:'', commentCount:5, imageUrl:null, createdAt:null },
+    { id:'d3', author:'Карина', title:'Вязаные браслеты', category:'хобби', price:500, description:'Делаю красивые плетёные браслеты на заказ. Любые цвета и надписи!', contact:'', commentCount:3, imageUrl:null, createdAt:null },
+    { id:'d4', author:'Санжар', title:'Помогаю с ChatGPT', category:'услуги', price:1000, description:'Обучу пользоваться нейросетями: ChatGPT, Midjourney, Gemini. 1 час урока.', contact:'Telegram: @sanzhar', commentCount:1, imageUrl:null, createdAt:null },
+    { id:'d5', author:'Дина', title:'Наушники TWS', category:'вещи', price:5000, description:'Продаю TWS наушники. Работают отлично. Зарядный кейс в комплекте.', contact:'', commentCount:0, imageUrl:null, createdAt:null },
+    { id:'d6', author:'Арман', title:'Уроки Python', category:'услуги', price:1500, description:'Занимаюсь программированием 3 года. Обучу основам Python. Онлайн или после занятий.', contact:'', commentCount:4, imageUrl:null, createdAt:null },
+  ];
+  document.getElementById('listingCount').textContent = allListings.length;
+  renderListings();
+}
+
+if (configured) loadListings();
 </script>
 </body>
 </html>
